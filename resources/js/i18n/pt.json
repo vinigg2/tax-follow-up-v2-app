@@ -1,0 +1,105 @@
+{
+    "common": {
+        "loading": "Carregando...",
+        "save": "Salvar",
+        "cancel": "Cancelar",
+        "delete": "Excluir",
+        "edit": "Editar",
+        "create": "Criar",
+        "search": "Buscar",
+        "filter": "Filtrar",
+        "actions": "Acoes",
+        "confirm": "Confirmar",
+        "back": "Voltar",
+        "next": "Proximo",
+        "previous": "Anterior",
+        "yes": "Sim",
+        "no": "Nao",
+        "all": "Todos",
+        "none": "Nenhum",
+        "select": "Selecionar",
+        "required": "Obrigatorio"
+    },
+    "auth": {
+        "login": "Entrar",
+        "logout": "Sair",
+        "register": "Cadastrar",
+        "email": "E-mail",
+        "password": "Senha",
+        "confirmPassword": "Confirmar senha",
+        "name": "Nome",
+        "username": "Usuario",
+        "forgotPassword": "Esqueceu a senha?",
+        "rememberMe": "Lembrar-me",
+        "noAccount": "Nao tem conta?",
+        "hasAccount": "Ja tem conta?",
+        "loginWithSaml": "Entrar com SSO"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "tasks": "Tarefas",
+        "obligations": "Obrigacoes",
+        "companies": "Empresas",
+        "teams": "Times",
+        "profile": "Perfil",
+        "settings": "Configuracoes"
+    },
+    "tasks": {
+        "title": "Tarefas",
+        "new": "Nova",
+        "pending": "Pendente",
+        "delayed": "Atrasada",
+        "finished": "Finalizada",
+        "rectified": "Retificada",
+        "deadline": "Prazo",
+        "responsible": "Responsavel",
+        "company": "Empresa",
+        "status": "Status",
+        "progress": "Progresso",
+        "documents": "Documentos",
+        "timeline": "Historico",
+        "archive": "Arquivar",
+        "unarchive": "Desarquivar",
+        "correct": "Retificar",
+        "selectTask": "Selecione uma tarefa para ver detalhes"
+    },
+    "obligations": {
+        "title": "Obrigacoes",
+        "frequency": "Frequencia",
+        "monthly": "Mensal",
+        "quarterly": "Trimestral",
+        "annual": "Anual",
+        "generateTasks": "Gerar Tarefas",
+        "documentTypes": "Tipos de Documentos"
+    },
+    "companies": {
+        "title": "Empresas",
+        "cnpj": "CNPJ",
+        "country": "Pais",
+        "addCompany": "Adicionar Empresa"
+    },
+    "teams": {
+        "title": "Times",
+        "members": "Membros",
+        "invite": "Convidar",
+        "owner": "Proprietario",
+        "admin": "Administrador",
+        "member": "Membro"
+    },
+    "documents": {
+        "title": "Documentos",
+        "upload": "Enviar",
+        "download": "Baixar",
+        "approve": "Aprovar",
+        "reject": "Rejeitar",
+        "reset": "Resetar",
+        "obligatory": "Obrigatorio",
+        "optional": "Opcional"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "tasksOverview": "Visao Geral das Tarefas",
+        "delayedTasks": "Tarefas Atrasadas",
+        "recentDeliveries": "Entregas Recentes"
+    }
+}

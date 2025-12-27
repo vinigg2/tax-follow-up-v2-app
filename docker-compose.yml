@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: tfu-laravel-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - tfu-network
+
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: tfu-laravel-php
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      - PHP_MEMORY_LIMIT=512M
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - tfu-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: tfu-laravel-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tax_follow_up
+      MYSQL_USER: tfu_user
+      MYSQL_PASSWORD: tfu_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - tfu-network
+
+  redis:
+    image: redis:alpine
+    container_name: tfu-laravel-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tfu-network
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: tfu-laravel-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - tfu-network
+
+  node:
+    image: node:20-alpine
+    container_name: tfu-laravel-node
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    networks:
+      - tfu-network
+    profiles:
+      - dev
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  tfu-network:
+    driver: bridge

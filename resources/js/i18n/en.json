@@ -1,0 +1,105 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "search": "Search",
+        "filter": "Filter",
+        "actions": "Actions",
+        "confirm": "Confirm",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "yes": "Yes",
+        "no": "No",
+        "all": "All",
+        "none": "None",
+        "select": "Select",
+        "required": "Required"
+    },
+    "auth": {
+        "login": "Login",
+        "logout": "Logout",
+        "register": "Register",
+        "email": "Email",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "name": "Name",
+        "username": "Username",
+        "forgotPassword": "Forgot password?",
+        "rememberMe": "Remember me",
+        "noAccount": "Don't have an account?",
+        "hasAccount": "Already have an account?",
+        "loginWithSaml": "Login with SSO"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "tasks": "Tasks",
+        "obligations": "Obligations",
+        "companies": "Companies",
+        "teams": "Teams",
+        "profile": "Profile",
+        "settings": "Settings"
+    },
+    "tasks": {
+        "title": "Tasks",
+        "new": "New",
+        "pending": "Pending",
+        "delayed": "Delayed",
+        "finished": "Finished",
+        "rectified": "Rectified",
+        "deadline": "Deadline",
+        "responsible": "Responsible",
+        "company": "Company",
+        "status": "Status",
+        "progress": "Progress",
+        "documents": "Documents",
+        "timeline": "Timeline",
+        "archive": "Archive",
+        "unarchive": "Unarchive",
+        "correct": "Rectify",
+        "selectTask": "Select a task to view details"
+    },
+    "obligations": {
+        "title": "Obligations",
+        "frequency": "Frequency",
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "annual": "Annual",
+        "generateTasks": "Generate Tasks",
+        "documentTypes": "Document Types"
+    },
+    "companies": {
+        "title": "Companies",
+        "cnpj": "CNPJ",
+        "country": "Country",
+        "addCompany": "Add Company"
+    },
+    "teams": {
+        "title": "Teams",
+        "members": "Members",
+        "invite": "Invite",
+        "owner": "Owner",
+        "admin": "Admin",
+        "member": "Member"
+    },
+    "documents": {
+        "title": "Documents",
+        "upload": "Upload",
+        "download": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "reset": "Reset",
+        "obligatory": "Obligatory",
+        "optional": "Optional"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "tasksOverview": "Tasks Overview",
+        "delayedTasks": "Delayed Tasks",
+        "recentDeliveries": "Recent Deliveries"
+    }
+}
