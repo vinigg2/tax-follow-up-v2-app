@@ -1,7 +1,7 @@
 import {
   Building2,
   CheckSquare,
-  ClipboardList,
+  FileText,
   LayoutDashboard,
   Users,
   User,
@@ -15,37 +15,40 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: LayoutDashboard,
     path: '/dashboard',
   },
-  { heading: 'Gerenciamento' },
+  { heading: 'Operacional' },
   {
     title: 'Tarefas',
     icon: CheckSquare,
     path: '/tasks',
   },
-  {
-    title: 'Obrigacoes',
-    icon: ClipboardList,
-    path: '/obligations',
-  },
+  { heading: 'Clientes' },
   {
     title: 'Empresas',
     icon: Building2,
     path: '/companies',
   },
-  { heading: 'Administracao' },
+  { heading: 'Cadastros' },
   {
-    title: 'Equipes',
+    title: 'Modelos de Obrigacoes',
+    icon: FileText,
+    path: '/obligations',
+  },
+  { heading: 'Equipe' },
+  {
+    title: 'Times',
     icon: Users,
     path: '/teams',
   },
   {
-    title: 'Usuarios',
+    title: 'Membros',
     icon: UserCircle,
     path: '/users',
   },
   {
-    title: 'Perfil',
+    title: 'Meu Perfil',
     icon: User,
     path: '/profile',
+    hidden: true,
   },
 ];
 

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import KanbanBoard from '@/components/kanban/KanbanBoard';
 import { TaskActionsDrawer } from '@/components/tasks/TaskActionsDrawer';
+import { TaskFormDrawer } from '@/components/tasks/TaskFormDrawer';
 import { cn } from '@/lib/utils';
 import {
   ListTodo,
@@ -86,6 +87,7 @@ export default function TasksIndex() {
   const [teamFilter, setTeamFilter] = useState<number | undefined>();
   const [companyFilter, setCompanyFilter] = useState<number | undefined>();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
 
   const { data, isLoading, error } = useTasks(method);
   const { data: teamsData } = useTeams();
@@ -257,7 +259,7 @@ export default function TasksIndex() {
 
           {/* Create Task Button */}
           <Button
-            onClick={() => navigate('/tasks/create')}
+            onClick={() => setIsCreateDrawerOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -266,6 +268,9 @@ export default function TasksIndex() {
           </Button>
         </div>
       </div>
+
+      {/* Task Form Drawer */}
+      <TaskFormDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -370,7 +375,7 @@ export default function TasksIndex() {
               !searchTerm
                 ? {
                     label: 'Nova Tarefa',
-                    onClick: () => navigate('/tasks/create'),
+                    onClick: () => setIsCreateDrawerOpen(true),
                     icon: Plus,
                   }
                 : undefined

@@ -1,8 +1,8 @@
-# Sistema de Usuarios
+# Sistema de Membros
 
 ## Visao Geral
 
-Gerenciamento de usuarios do sistema com autenticacao, dados pessoais e vinculo a times.
+Gerenciamento de membros (operadores) do escritorio contabil. Membros sao os usuarios que executam as tarefas e estao vinculados a times.
 
 ## Arquivos
 

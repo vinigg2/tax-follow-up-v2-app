@@ -11,10 +11,11 @@ resources/js/
 ├── api/tasks.ts                    # API e tipos
 ├── hooks/useTasks.ts               # React Query hooks
 ├── components/tasks/
+│   ├── TaskFormDrawer.tsx          # Drawer de criacao de tarefa
 │   ├── TaskActionsDrawer.tsx       # Drawer de acoes da tarefa
 │   └── ChecklistManager.tsx        # Gerenciador de checklist
 └── pages/tasks/
-    └── TasksIndex.tsx              # Pagina principal
+    └── TasksIndex.tsx              # Pagina principal (lista + kanban)
 ```
 
 ## Modelo de Dados
@@ -79,12 +80,23 @@ Drawer lateral que exibe detalhes e acoes de uma tarefa.
 ## Funcionalidades
 
 ### Listagem
-- Tabela com tarefas
-- Filtros: status, empresa, responsavel, periodo
+- Visualizacao Kanban (padrao) e Lista
+- Filtros: status, equipe, empresa
+- Abas: Todas, Minhas, Atrasadas, Arquivadas
+- Busca por titulo, empresa ou competencia
 - Indicador visual de atraso
-- Ordenacao por prazo
 
-### Visualizacao
+### Criacao (TaskFormDrawer)
+Drawer lateral para criacao de tarefas com campos:
+- **Titulo**: Nome da tarefa (obrigatorio)
+- **Empresa**: Empresa vinculada (obrigatorio)
+- **Modelo de Obrigacao**: Opcional, herda configuracoes do modelo
+- **Responsavel**: Usuario responsavel
+- **Data de Vencimento**: Prazo (obrigatorio)
+- **Competencia**: Periodo de referencia (ex: Janeiro/2025)
+- **Descricao**: Observacoes
+
+### Visualizacao (TaskActionsDrawer)
 - Drawer lateral com detalhes
 - Checklist integrado
 - Historico de atividades

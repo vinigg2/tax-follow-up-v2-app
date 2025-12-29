@@ -55,6 +55,16 @@ export interface TaskUpdateData {
   [key: string]: unknown;
 }
 
+export interface TaskCreateData {
+  title: string;
+  description?: string;
+  company_id: number;
+  obligation_id?: number;
+  responsible_user_id?: number;
+  deadline: string;
+  competency?: string;
+}
+
 export interface TimelineEntryData {
   type: string;
   description?: string;
@@ -63,6 +73,11 @@ export interface TimelineEntryData {
 export const tasksApi = {
   getAll: async (params: Record<string, unknown> = {}): Promise<TasksResponse> => {
     const response = await api.get('/tasks', { params });
+    return response.data;
+  },
+
+  create: async (data: TaskCreateData): Promise<TaskResponse> => {
+    const response = await api.post('/tasks', data);
     return response.data;
   },
 

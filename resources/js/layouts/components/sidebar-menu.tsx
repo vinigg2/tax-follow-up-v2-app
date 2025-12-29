@@ -57,13 +57,17 @@ export function SidebarMenu() {
 
   const buildMenu = (items: MenuConfig): JSX.Element[] => {
     return items.map((item: MenuItem, index: number) => {
-      if (item.heading) {
-        return buildMenuHeading(item, index);
-      } else if (item.disabled) {
-        return buildMenuItemRootDisabled(item, index);
-      } else {
-        return buildMenuItemRoot(item, index);
+      if (!item.hidden) {
+        if (item.heading) {
+          return buildMenuHeading(item, index);
+        } else if (item.disabled) {
+          return buildMenuItemRootDisabled(item, index);
+        } else {
+          return buildMenuItemRoot(item, index);
+        }
       }
+
+      return <></>;
     });
   };
 

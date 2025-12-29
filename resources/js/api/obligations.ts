@@ -47,7 +47,7 @@ export interface ObligationFormData {
   day_deadline: number;
   month_deadline?: number;
   period: number;
-  company_ids: number[];
+  company_ids?: number[];
   generate_automatic_tasks: boolean;
   months_advanced?: number;
   initial_generation_date?: string;

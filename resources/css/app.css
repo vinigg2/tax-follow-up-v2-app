@@ -76,6 +76,32 @@
 
 /** Theme Setup **/
 @theme inline {
+  /** Float Animation for Auth Page **/
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shadow: shadow 6s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes shadow {
+    0%,
+    100% {
+      transform: translateX(-50%) scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: translateX(-50%) scale(0.85);
+      opacity: 0.1;
+    }
+  }
+
   /** Base Colors **/
   --color-background: var(--background);
   --color-foreground: var(--foreground);

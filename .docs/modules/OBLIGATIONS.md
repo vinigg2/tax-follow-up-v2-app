@@ -1,24 +1,29 @@
-# Sistema de Obrigacoes
+# Sistema de Modelos de Obrigacoes
 
 ## Visao Geral
 
-Obrigacoes sao templates que definem obrigacoes fiscais recorrentes. Elas servem como base para geracao automatica de tarefas.
+Modelos de Obrigacoes sao templates/cadastros que definem obrigacoes fiscais recorrentes. Eles servem como base para geracao automatica de tarefas.
+
+> **Nota:** No sistema, "Modelos de Obrigacoes" sao cadastros base. As "Tarefas" sao as instancias de trabalho geradas a partir desses modelos.
 
 ## Conceito
 
 ```
-Obrigacao (Template)
+Modelo de Obrigacao (Template)
     │
     ├── Frequencia (MM/QT/AA)
     ├── Prazo (dia do mes)
-    ├── Empresas vinculadas
+    ├── Tipo (kind)
     │
-    └── Gera ──> Tarefas (instancias)
-                    │
-                    ├── Competencia calculada
-                    ├── Data de vencimento
-                    └── Checklist
+    └── Usado por ──> Tarefas (instancias)
+                          │
+                          ├── Empresa vinculada (na tarefa)
+                          ├── Competencia calculada
+                          ├── Data de vencimento
+                          └── Checklist
 ```
+
+> **Nota:** Empresas sao vinculadas diretamente as Tarefas, nao aos Modelos de Obrigacoes. Isso permite maior flexibilidade, onde um mesmo modelo pode ser usado por diferentes empresas.
 
 ## Arquivos
 
@@ -123,12 +128,11 @@ Secoes:
 1. **Dados Basicos**: Titulo, Tipo, Descricao
 2. **Configuracao de Prazo**: Frequencia, Dia, Periodo
 3. **Preview**: Mostra competencia e prazo calculados
-4. **Empresas**: Multi-select de empresas
-5. **Geracao Automatica**: Toggle e configuracoes
+4. **Geracao Automatica**: Toggle e configuracoes
 
 ### Geracao de Tarefas
 - Botao "Gerar Tarefas" no dropdown de acoes
-- Gera tarefas para todas as empresas vinculadas
+- Permite selecionar empresas no momento da geracao
 - Confirmacao antes de gerar
 
 ## Endpoints API

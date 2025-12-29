@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useCreateObligation, useUpdateObligation } from '@/hooks/useObligations';
-import { useCompanies } from '@/hooks/useCompanies';
 import {
   Obligation,
   ObligationFormData,
@@ -23,7 +22,7 @@ import {
   OBLIGATION_PERIODS,
 } from '@/api/obligations';
 import { ObligationPreview } from './ObligationPreview';
-import { Loader2, Zap, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Loader2, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ObligationFormModalProps {
@@ -59,18 +58,15 @@ export function ObligationFormModal({
   const [dayDeadline, setDayDeadline] = useState(15);
   const [monthDeadline, setMonthDeadline] = useState(3);
   const [period, setPeriod] = useState(0);
-  const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>([]);
   const [generateAutomatic, setGenerateAutomatic] = useState(false);
   const [monthsAdvanced, setMonthsAdvanced] = useState(1);
   const [initialDate, setInitialDate] = useState('');
   const [finalDate, setFinalDate] = useState('');
   const [showAutoSection, setShowAutoSection] = useState(false);
 
-  const { data: companiesData } = useCompanies();
   const createObligation = useCreateObligation();
   const updateObligation = useUpdateObligation();
 
-  const companies = companiesData?.companies || [];
   const isEditing = !!obligation;
   const isLoading = createObligation.isPending || updateObligation.isPending;
 
@@ -88,7 +84,6 @@ export function ObligationFormModal({
       setInitialDate(obligation.initial_generation_date || '');
       setFinalDate(obligation.final_generation_date || '');
       setShowAutoSection(obligation.generate_automatic_tasks);
-      setSelectedCompanyIds(obligation.companies?.map((c) => c.id) || []);
     } else {
       setTitle('');
       setKind('obrigacoes_acessorias');
@@ -97,7 +92,6 @@ export function ObligationFormModal({
       setDayDeadline(15);
       setMonthDeadline(3);
       setPeriod(0);
-      setSelectedCompanyIds([]);
       setGenerateAutomatic(false);
       setMonthsAdvanced(1);
       setInitialDate('');
@@ -105,14 +99,6 @@ export function ObligationFormModal({
       setShowAutoSection(false);
     }
   }, [obligation, open]);
-
-  const toggleCompany = (companyId: number) => {
-    setSelectedCompanyIds((prev) =>
-      prev.includes(companyId)
-        ? prev.filter((id) => id !== companyId)
-        : [...prev, companyId]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +111,6 @@ export function ObligationFormModal({
       day_deadline: dayDeadline,
       month_deadline: frequency !== 'MM' ? monthDeadline : undefined,
       period,
-      company_ids: selectedCompanyIds,
       generate_automatic_tasks: generateAutomatic,
       months_advanced: generateAutomatic ? monthsAdvanced : undefined,
       initial_generation_date: generateAutomatic && initialDate ? initialDate : undefined,
@@ -144,7 +129,7 @@ export function ObligationFormModal({
     }
   };
 
-  const canSubmit = title.trim() && selectedCompanyIds.length > 0 && dayDeadline >= 1 && dayDeadline <= 31;
+  const canSubmit = title.trim() && dayDeadline >= 1 && dayDeadline <= 31;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,7 +139,7 @@ export function ObligationFormModal({
           <DialogDescription>
             {isEditing
               ? 'Edite as informacoes da obrigacao abaixo.'
-              : 'Preencha as informacoes para criar uma nova obrigacao fiscal.'}
+              : 'Preencha as informacoes para criar um novo modelo de obrigacao fiscal.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -206,46 +191,6 @@ export function ObligationFormModal({
                     maxLength={250}
                     className="input w-full resize-none"
                   />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Empresa(s) *</Label>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-40 overflow-y-auto">
-                    {companies.length === 0 ? (
-                      <p className="p-3 text-sm text-gray-500 dark:text-gray-400">
-                        Nenhuma empresa cadastrada
-                      </p>
-                    ) : (
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {companies.map((company) => (
-                          <label
-                            key={company.id}
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                          >
-                            <div
-                              className={cn(
-                                'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
-                                selectedCompanyIds.includes(company.id)
-                                  ? 'bg-blue-600 border-blue-600'
-                                  : 'border-gray-300 dark:border-gray-600'
-                              )}
-                              onClick={() => toggleCompany(company.id)}
-                            >
-                              {selectedCompanyIds.includes(company.id) && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
-                            <span className="text-sm text-gray-900 dark:text-white">
-                              {company.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {selectedCompanyIds.length > 0 && (
-                    <p className="text-xs text-gray-500">{selectedCompanyIds.length} empresa(s) selecionada(s)</p>
-                  )}
                 </div>
               </div>
             </div>

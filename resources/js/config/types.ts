@@ -13,6 +13,7 @@ export interface MenuItem {
   collapseTitle?: string;
   expandTitle?: string;
   badge?: string;
+  hidden?: boolean = false;
   separator?: boolean;
 }
 

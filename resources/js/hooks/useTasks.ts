@@ -6,6 +6,7 @@ import {
   TaskResponse,
   TimelineResponse,
   TaskUpdateData,
+  TaskCreateData,
   TimelineEntryData,
 } from '@/api/tasks';
 
@@ -33,6 +34,17 @@ export function useTaskTimeline(taskId: number | string | undefined) {
     queryKey: ['task-timeline', taskId],
     queryFn: () => tasksApi.getTimeline(taskId!),
     enabled: !!taskId,
+  });
+}
+
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: TaskCreateData) => tasksApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
   });
 }
 

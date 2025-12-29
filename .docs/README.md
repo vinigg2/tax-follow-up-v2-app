@@ -39,10 +39,10 @@ resources/js/
 ## Documentacao por Modulo
 
 - [Arquitetura Frontend](./ARCHITECTURE.md)
-- [Sistema de Usuarios](./modules/USERS.md)
+- [Sistema de Membros](./modules/USERS.md)
 - [Sistema de Times](./modules/TEAMS.md)
 - [Sistema de Empresas](./modules/COMPANIES.md)
-- [Sistema de Obrigacoes](./modules/OBLIGATIONS.md)
+- [Sistema de Modelos de Obrigacoes](./modules/OBLIGATIONS.md)
 - [Sistema de Tarefas](./modules/TASKS.md)
 - [Sistema de Checklist](./modules/CHECKLISTS.md)
 
