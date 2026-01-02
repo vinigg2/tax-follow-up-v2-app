@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Infrastructure\Persistence\Models\User;
+use App\Mail\MfaCodeMail;
+use App\Mail\WelcomeMail;
+use App\Mail\PasswordResetMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -26,6 +30,30 @@ class AuthController extends Controller
             ]);
         }
 
+        // Check if user is active
+        if (isset($user->is_active) && !$user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Sua conta esta desativada. Entre em contato com o suporte.'],
+            ]);
+        }
+
+        // Check if MFA is enabled
+        if ($user->mfa_enabled) {
+            // If email MFA, send OTP code
+            if ($user->mfa_method === 'email') {
+                $this->sendEmailOtp($user);
+            }
+
+            return response()->json([
+                'requires_mfa' => true,
+                'mfa_method' => $user->mfa_method,
+                'temp_token' => encrypt($user->id),
+                'message' => $user->mfa_method === 'email'
+                    ? 'Codigo de verificacao enviado para seu email.'
+                    : 'Insira o codigo do seu aplicativo autenticador.',
+            ]);
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -33,6 +61,21 @@ class AuthController extends Controller
             'token' => $token,
             'groups' => $user->accessibleGroups(),
         ]);
+    }
+
+    /**
+     * Send email OTP to user
+     */
+    private function sendEmailOtp(User $user): void
+    {
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $user->update([
+            'email_otp' => $otp,
+            'email_otp_expires_at' => now()->addMinutes(10),
+        ]);
+
+        Mail::to($user->email)->send(new MfaCodeMail($otp, $user->name));
     }
 
     public function register(Request $request): JsonResponse
@@ -51,6 +94,14 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'language' => $request->language ?? 'pt',
         ]);
+
+        // Send welcome email
+        try {
+            Mail::to($user->email)->send(new WelcomeMail($user->name));
+        } catch (\Exception $e) {
+            // Log error but don't fail registration
+            \Log::error('Failed to send welcome email: ' . $e->getMessage());
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -136,7 +187,15 @@ class AuthController extends Controller
         $user->generateResetCode();
         $user->save();
 
-        // TODO: Send email with reset link
+        // Send password reset email
+        try {
+            Mail::to($user->email)->send(new PasswordResetMail($user->reset_code, $user->name));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send password reset email: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Erro ao enviar email. Tente novamente.',
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'E-mail de recuperacao enviado!',

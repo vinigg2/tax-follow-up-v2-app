@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DocumentTypeController;
 use App\Http\Controllers\Api\ApproverController;
 use App\Http\Controllers\Api\CronController;
+use App\Http\Controllers\Api\MfaController;
+use App\Http\Controllers\Api\ChecklistController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,11 +30,26 @@ Route::prefix('auth')->group(function () {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 
+    // MFA routes (public - for login flow)
+    Route::prefix('mfa')->group(function () {
+        Route::post('confirm', [MfaController::class, 'confirm']);
+        Route::post('send-email-otp', [MfaController::class, 'sendEmailOtp']);
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('user', [AuthController::class, 'user']);
         Route::put('user', [AuthController::class, 'updateProfile']);
         Route::put('user/password', [AuthController::class, 'updatePassword']);
+
+        // MFA routes (authenticated - for setup)
+        Route::prefix('mfa')->group(function () {
+            Route::get('status', [MfaController::class, 'status']);
+            Route::post('setup', [MfaController::class, 'setup']);
+            Route::post('verify', [MfaController::class, 'verify']);
+            Route::post('disable', [MfaController::class, 'disable']);
+            Route::post('backup-codes', [MfaController::class, 'generateBackupCodes']);
+        });
     });
 });
 
@@ -47,6 +64,14 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('tasks/{task}/unarchive', [TaskController::class, 'unarchive']);
     Route::get('tasks/{task}/timeline', [TimelineController::class, 'index']);
     Route::post('tasks/{task}/timeline', [TimelineController::class, 'store']);
+
+    // Checklists (Subtasks)
+    Route::get('tasks/{task}/checklists', [ChecklistController::class, 'index']);
+    Route::post('tasks/{task}/checklists', [ChecklistController::class, 'store']);
+    Route::patch('tasks/{task}/checklists/reorder', [ChecklistController::class, 'reorder']);
+    Route::put('checklists/{checklist}', [ChecklistController::class, 'update']);
+    Route::delete('checklists/{checklist}', [ChecklistController::class, 'destroy']);
+    Route::patch('checklists/{checklist}/status', [ChecklistController::class, 'updateStatus']);
 
     // Obligations
     Route::apiResource('obligations', ObligationController::class);
@@ -83,10 +108,27 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::delete('groups/{group}/users/{user}', [GroupController::class, 'removeUser']);
     Route::put('groups/{group}/users/{user}/role', [GroupController::class, 'updateUserRole']);
 
+    // Teams (alias for groups - frontend compatibility)
+    Route::prefix('teams')->group(function () {
+        Route::get('/', [GroupController::class, 'index']);
+        Route::post('/', [GroupController::class, 'store']);
+        Route::get('/{group}', [GroupController::class, 'show']);
+        Route::put('/{group}', [GroupController::class, 'update']);
+        Route::delete('/{group}', [GroupController::class, 'destroy']);
+        Route::get('/{group}/users', [GroupController::class, 'users']);
+        Route::get('/{group}/members', [GroupController::class, 'users']); // Alias
+        Route::post('/{group}/invite', [InvitationController::class, 'store']);
+        Route::delete('/{group}/users/{user}', [GroupController::class, 'removeUser']);
+        Route::delete('/{group}/members/{user}', [GroupController::class, 'removeUser']); // Alias
+        Route::put('/{group}/users/{user}/role', [GroupController::class, 'updateUserRole']);
+    });
+
     // Users
-    Route::apiResource('users', UserController::class)->only(['index', 'show', 'update']);
+    Route::apiResource('users', UserController::class);
     Route::put('users/{user}/notifications', [UserController::class, 'updateNotifications']);
     Route::post('users/{user}/avatar', [UserController::class, 'uploadAvatar']);
+    Route::patch('users/{user}/toggle-active', [UserController::class, 'toggleActive']);
+    Route::put('users/{user}/password', [UserController::class, 'updatePassword']);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {

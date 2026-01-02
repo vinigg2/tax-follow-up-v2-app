@@ -363,8 +363,8 @@ export default function TasksIndex() {
       ) : filteredTasks.length === 0 ? (
         <div className="card">
           <EmptyState
-            illustration="/images/illustrations/8.svg"
-            illustrationDark="/images/illustrations/8-dark.svg"
+            illustration="/images/illustrations/6.svg"
+            illustrationDark="/images/illustrations/6-dark.svg"
             title={searchTerm ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa'}
             description={
               searchTerm

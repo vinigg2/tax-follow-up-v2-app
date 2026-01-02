@@ -89,6 +89,11 @@ class Task extends Model
         return $this->hasMany(Timeline::class)->orderBy('created_at', 'desc');
     }
 
+    public function checklists(): HasMany
+    {
+        return $this->hasMany(Checklist::class)->orderBy('order');
+    }
+
     // Accessors
     protected function taskHierarchyTitle(): Attribute
     {
