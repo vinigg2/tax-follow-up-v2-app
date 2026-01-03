@@ -76,15 +76,18 @@ php artisan reverb:start
 ## Arquivos Criados
 
 ### Migrations
-- `2024_01_01_000017_add_mfa_fields_to_users.php` - Campos MFA
+- `2024_01_01_000017_add_mfa_fields_to_users.php` - Campos MFA e is_active
 - `2024_01_01_000018_create_checklists_table.php` - Tabela de checklists
+- `2024_01_01_000019_create_notifications_table.php` - Tabela de notificacoes
 
 ### Controllers
 - `app/Http/Controllers/Api/MfaController.php` - MFA endpoints
 - `app/Http/Controllers/Api/ChecklistController.php` - Checklists CRUD
+- `app/Http/Controllers/Api/NotificationController.php` - Notificacoes API
 
 ### Models
 - `app/Infrastructure/Persistence/Models/Checklist.php`
+- `app/Infrastructure/Persistence/Models/User.php` - Atualizado com HasRoles trait
 
 ### Mail
 - `app/Mail/MfaCodeMail.php`
@@ -96,7 +99,35 @@ php artisan reverb:start
 - `resources/views/emails/password-reset.blade.php`
 - `resources/views/emails/welcome.blade.php`
 
+### Notifications
+
+- `app/Notifications/TaskDeadlineNotification.php` - Alertas de prazo
+- `app/Notifications/TaskAssignedNotification.php` - Tarefa atribuida
+- `app/Notifications/DocumentStatusNotification.php` - Status de documento
+- `app/Notifications/DailySummaryNotification.php` - Resumo diario
+- `app/Notifications/WeeklySummaryNotification.php` - Resumo semanal
+
+### Events (Realtime Broadcast)
+
+- `app/Events/TaskUpdated.php` - Tarefa atualizada
+- `app/Events/TaskCreated.php` - Tarefa criada
+- `app/Events/DocumentStatusChanged.php` - Status documento alterado
+- `app/Events/NewNotification.php` - Nova notificacao
+
+### Console
+
+- `app/Console/Kernel.php` - Laravel Scheduler configurado
+
+### Routes
+
+- `routes/channels.php` - Canais de broadcast
+
+### Config
+
+- `config/broadcasting.php` - Configuracao Reverb
+
 ### Seeders
+
 - `database/seeders/RolesAndPermissionsSeeder.php`
 
 ## Novas Rotas API
@@ -170,9 +201,64 @@ PUT    /api/users/{id}/password        - Alterar senha
 - Reports: `reports.view`, `reports.export`, `dashboard.view`, `dashboard.team_metrics`, `dashboard.company_metrics`
 - System: `system.settings`, `system.audit_logs`
 
-## Proximos Passos
+### Notifications API
 
-1. Configurar User model com HasRoles trait do Spatie
-2. Implementar Notifications classes
-3. Implementar Events para broadcast
-4. Configurar Laravel Scheduler (Kernel.php)
+```
+GET    /api/notifications                  - Listar notificacoes
+GET    /api/notifications/unread-count     - Contagem de nao lidas
+POST   /api/notifications/mark-all-read    - Marcar todas como lidas
+POST   /api/notifications/{id}/read        - Marcar como lida
+DELETE /api/notifications/read             - Excluir lidas
+DELETE /api/notifications/{id}             - Excluir notificacao
+GET    /api/notifications/preferences      - Ver preferencias
+PUT    /api/notifications/preferences      - Atualizar preferencias
+```
+
+## Laravel Scheduler (Cron)
+
+O scheduler esta configurado em `app/Console/Kernel.php`:
+
+| Tarefa | Frequencia | Descricao |
+|--------|------------|-----------|
+| `update-task-status` | A cada hora | Atualiza status de tarefas atrasadas |
+| `create-automatic-tasks` | Diario 6:00 | Gera tarefas de obrigacoes |
+| `send-daily-notifications` | Diario 8:00 | Envia resumo diario |
+| `send-weekly-notifications` | Segunda 8:00 | Envia resumo semanal |
+| `send-monthly-notifications` | Dia 1 8:00 | Envia resumo mensal |
+| `cleanup-old-notifications` | Domingo 2:00 | Remove notificacoes antigas |
+| `cleanup-expired-mfa-codes` | 15 min | Limpa codigos MFA expirados |
+
+Para rodar o scheduler em producao, adicione ao crontab:
+
+```bash
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+## Broadcast Channels (Realtime)
+
+Canais configurados em `routes/channels.php`:
+
+| Canal | Descricao |
+|-------|-----------|
+| `user.{id}` | Notificacoes do usuario |
+| `group.{groupId}` | Notificacoes do grupo/time |
+| `task.{taskId}` | Atualizacoes da tarefa |
+| `company.{companyId}` | Atualizacoes da empresa |
+
+## Status da Implementacao
+
+| Modulo | Status |
+|--------|--------|
+| Autenticacao (Login/Register/Logout) | Completo |
+| Recuperacao de Senha | Completo |
+| MFA (TOTP + Email OTP) | Completo |
+| Permissoes (Spatie) | Completo |
+| Obrigacoes CRUD | Completo |
+| Tasks CRUD + Checklists | Completo |
+| Empresas CRUD | Completo |
+| Times/Grupos CRUD | Completo |
+| Usuarios CRUD | Completo |
+| Dashboard/Metricas | Completo |
+| Notificacoes | Completo |
+| Cron/Scheduler | Completo |
+| Realtime (Reverb) | Completo |

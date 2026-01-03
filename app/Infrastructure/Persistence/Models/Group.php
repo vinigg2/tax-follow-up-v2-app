@@ -13,6 +13,11 @@ class Group extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\GroupFactory
+    {
+        return \Database\Factories\GroupFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'owner_id',

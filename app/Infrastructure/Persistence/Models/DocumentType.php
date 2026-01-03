@@ -11,6 +11,11 @@ class DocumentType extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\DocumentTypeFactory
+    {
+        return \Database\Factories\DocumentTypeFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'description',

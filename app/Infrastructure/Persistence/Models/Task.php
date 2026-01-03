@@ -12,6 +12,11 @@ class Task extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\TaskFactory
+    {
+        return \Database\Factories\TaskFactory::new();
+    }
+
     protected $fillable = [
         'title',
         'description',

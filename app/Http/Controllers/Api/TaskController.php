@@ -77,9 +77,12 @@ class TaskController extends Controller
             'myApprovals' => $this->getMyApprovals($userId, $groupIds),
             'archivedTasks' => $this->getArchivedTasks($groupIds),
             'delayedTasks' => $this->getDelayedTasks($groupIds),
-            'byTeams' => $this->getTasksByTeams($groupIds),
-            'byCompanies' => $this->getTasksByCompanies($groupIds, $request),
-            'byStatus' => $this->getTasksByStatus($groupIds),
+            'byTeams', 'times' => $this->getTasksByTeams($groupIds),
+            'byCompanies', 'companies' => $this->getTasksByCompanies($groupIds, $request),
+            'byStatus', 'status' => $this->getTasksByStatus($groupIds),
+            'byUsers', 'users' => $this->getTasksByUsers($groupIds),
+            'byDeadline', 'deadline' => $this->getTasksByDeadline($groupIds),
+            'byMonth', 'month' => $this->getTasksByMonth($groupIds, $request),
             default => collect(),
         };
 
@@ -400,6 +403,75 @@ class TaskController extends Controller
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->get();
+    }
+
+    private function getTasksByUsers(array $groupIds)
+    {
+        return Task::with(['company', 'responsibleUser'])
+            ->whereIn('group_id', $groupIds)
+            ->where('deleted', false)
+            ->where('is_active', true)
+            ->whereNotIn('status', ['finished', 'rectified'])
+            ->get()
+            ->groupBy('responsible')
+            ->map(function ($tasks, $responsibleId) {
+                $user = $tasks->first()->responsibleUser;
+                return [
+                    'user_id' => $responsibleId,
+                    'user_name' => $user?->name ?? 'Nao atribuido',
+                    'total' => $tasks->count(),
+                    'by_status' => $tasks->groupBy('status')->map->count(),
+                    'tasks' => $tasks,
+                ];
+            })
+            ->values();
+    }
+
+    private function getTasksByDeadline(array $groupIds)
+    {
+        return Task::with(['company', 'responsibleUser'])
+            ->whereIn('group_id', $groupIds)
+            ->where('deleted', false)
+            ->where('is_active', true)
+            ->whereNotIn('status', ['finished', 'rectified'])
+            ->orderBy('deadline', 'asc')
+            ->get()
+            ->groupBy(fn($task) => $task->deadline->format('Y-m-d'))
+            ->map(function ($tasks, $date) {
+                return [
+                    'deadline' => $date,
+                    'total' => $tasks->count(),
+                    'tasks' => $tasks,
+                ];
+            })
+            ->values();
+    }
+
+    private function getTasksByMonth(array $groupIds, Request $request)
+    {
+        $query = Task::with(['company', 'responsibleUser'])
+            ->whereIn('group_id', $groupIds)
+            ->where('deleted', false)
+            ->where('is_active', true)
+            ->whereNotIn('status', ['finished', 'rectified']);
+
+        if ($request->filled('month')) {
+            $month = $request->month; // Format: YYYY-MM
+            $query->whereRaw("DATE_FORMAT(deadline, '%Y-%m') = ?", [$month]);
+        }
+
+        return $query->orderBy('deadline', 'asc')
+            ->get()
+            ->groupBy(fn($task) => $task->deadline->format('Y-m'))
+            ->map(function ($tasks, $month) {
+                return [
+                    'month' => $month,
+                    'total' => $tasks->count(),
+                    'by_status' => $tasks->groupBy('status')->map->count(),
+                    'tasks' => $tasks,
+                ];
+            })
+            ->values();
     }
 
     private function updateTaskStatus(Task $task): void

@@ -178,12 +178,12 @@ class ChecklistController extends Controller
         }
 
         $completed = $task->checklists()->completed()->count();
-        $percent = round(($completed / $total) * 100);
+        $percent = (int) round(($completed / $total) * 100);
 
         $task->update(['percent' => $percent]);
 
         // Update task status if all checklists are completed
-        if ($percent === 100 && $task->status !== 'finished') {
+        if ($percent >= 100 && $task->status !== 'finished') {
             $task->update([
                 'status' => 'finished',
                 'conclusion_date' => now(),

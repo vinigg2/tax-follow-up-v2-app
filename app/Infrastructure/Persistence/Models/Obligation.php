@@ -11,6 +11,11 @@ class Obligation extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\ObligationFactory
+    {
+        return \Database\Factories\ObligationFactory::new();
+    }
+
     protected $fillable = [
         'title',
         'description',

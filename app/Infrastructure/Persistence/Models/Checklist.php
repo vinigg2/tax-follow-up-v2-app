@@ -10,6 +10,11 @@ class Checklist extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\ChecklistFactory
+    {
+        return \Database\Factories\ChecklistFactory::new();
+    }
+
     protected $fillable = [
         'task_id',
         'title',

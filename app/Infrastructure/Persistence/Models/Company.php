@@ -11,6 +11,11 @@ class Company extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\CompanyFactory
+    {
+        return \Database\Factories\CompanyFactory::new();
+    }
+
     protected $fillable = [
         'cnpj',
         'name',

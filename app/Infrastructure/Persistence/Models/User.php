@@ -8,10 +8,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected $guard_name = 'sanctum';
+
+    protected static function newFactory(): \Database\Factories\UserFactory
+    {
+        return \Database\Factories\UserFactory::new();
+    }
 
     protected $fillable = [
         'name',
@@ -31,6 +39,14 @@ class User extends Authenticatable
         'weekly_notifications',
         'daily_notifications',
         'favorite_task_filter',
+        'is_active',
+        'mfa_enabled',
+        'mfa_method',
+        'mfa_secret',
+        'mfa_backup_codes',
+        'mfa_verified_at',
+        'email_otp',
+        'email_otp_expires_at',
     ];
 
     protected $hidden = [
@@ -38,6 +54,9 @@ class User extends Authenticatable
         'remember_token',
         'reset_code',
         'confirmation_token',
+        'mfa_secret',
+        'mfa_backup_codes',
+        'email_otp',
     ];
 
     protected function casts(): array
@@ -52,6 +71,11 @@ class User extends Authenticatable
             'weekly_notifications' => 'boolean',
             'daily_notifications' => 'boolean',
             'favorite_task_filter' => 'array',
+            'is_active' => 'boolean',
+            'mfa_enabled' => 'boolean',
+            'mfa_backup_codes' => 'encrypted:array',
+            'mfa_verified_at' => 'datetime',
+            'email_otp_expires_at' => 'datetime',
         ];
     }
 

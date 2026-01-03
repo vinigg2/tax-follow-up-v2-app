@@ -11,6 +11,11 @@ class Document extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\DocumentFactory
+    {
+        return \Database\Factories\DocumentFactory::new();
+    }
+
     protected $fillable = [
         'submission_date',
         'document_path',

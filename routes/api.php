@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ApproverController;
 use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\ChecklistController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +140,18 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::get('companies/{company}/status', [DashboardController::class, 'companyStatus']);
         Route::get('calendar', [DashboardController::class, 'calendar']);
         Route::get('performance', [DashboardController::class, 'performance']);
+    });
+
+    // Notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::post('{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::delete('read', [NotificationController::class, 'destroyRead']);
+        Route::delete('{notification}', [NotificationController::class, 'destroy']);
+        Route::get('preferences', [NotificationController::class, 'getPreferences']);
+        Route::put('preferences', [NotificationController::class, 'updatePreferences']);
     });
 
     // Invitations

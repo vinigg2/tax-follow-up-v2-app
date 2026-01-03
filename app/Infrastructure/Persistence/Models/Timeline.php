@@ -10,6 +10,11 @@ class Timeline extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\TimelineFactory
+    {
+        return \Database\Factories\TimelineFactory::new();
+    }
+
     protected $fillable = [
         'type',
         'task_id',
