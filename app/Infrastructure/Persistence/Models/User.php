@@ -47,6 +47,7 @@ class User extends Authenticatable
         'mfa_verified_at',
         'email_otp',
         'email_otp_expires_at',
+        'saml_id',
     ];
 
     protected $hidden = [

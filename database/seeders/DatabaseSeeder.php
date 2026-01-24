@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // ==================== Roles & Permissions ====================
+        $this->call(RolesAndPermissionsSeeder::class);
+
         // ==================== Users ====================
         $admin = User::create([
             'name' => 'Admin User',
@@ -47,6 +50,11 @@ class DatabaseSeeder extends Seeder
             'language' => 'pt',
             'confirmed_at' => now(),
         ]);
+
+        // ==================== Assign Roles ====================
+        $admin->assignRole('owner');
+        $manager->assignRole('admin');
+        $user->assignRole('member');
 
         // ==================== Group ====================
         $group = Group::create([
