@@ -304,7 +304,7 @@ class SamlController extends Controller
         if ($defaultGroupId) {
             $group = Group::find($defaultGroupId);
             if ($group) {
-                $group->users()->attach($user->id, ['is_admin' => false]);
+                $group->users()->attach($user->id, ['role' => 'member']);
             }
         }
 

@@ -5,6 +5,7 @@ import {
   closestCorners,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -66,6 +67,12 @@ export default function KanbanBoard({
         distance: 8,
       },
     }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -108,7 +115,7 @@ export default function KanbanBoard({
     mutationFn: ({ taskId, status }: { taskId: number | string; status: string }) =>
       tasksApi.update(taskId, { status }),
     onError: (
-      _err: unknown,
+      error: unknown,
       { taskId, oldStatus }: { taskId: number | string; oldStatus: string }
     ) => {
       // Rollback on error - restore old status
@@ -117,7 +124,9 @@ export default function KanbanBoard({
           task.id === taskId ? { ...task, status: oldStatus } : task
         )
       );
-      toast.error('Erro ao atualizar status da tarefa');
+      // Show specific error message from backend
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Erro ao atualizar status da tarefa');
     },
     onSuccess: () => {
       toast.success('Status atualizado');

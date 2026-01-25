@@ -34,10 +34,16 @@ class TenantMiddleware
         }
 
         // Store accessible groups in request for use in controllers
+        $adminGroupIds = $user->adminGroupIds();
+        $managerGroupIds = $user->managerGroupIds();
+
         $request->merge([
             'accessible_group_ids' => $accessibleGroupIds,
-            'admin_group_ids' => $user->adminGroupIds(),
+            'admin_group_ids' => $adminGroupIds,
+            'manager_group_ids' => $managerGroupIds,
             'owner_group_ids' => $user->ownerGroupIds(),
+            // Groups where user can manage content (admin or manager)
+            'content_manager_group_ids' => array_unique(array_merge($adminGroupIds, $managerGroupIds)),
         ]);
 
         return $next($request);

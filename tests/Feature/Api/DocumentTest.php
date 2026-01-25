@@ -314,12 +314,15 @@ class DocumentTest extends TestCase
                 'approval_required' => 'S',
             ]);
 
-        // No pending signature for this user
-        $this->actingAsUser();
+        // Create a member user who is not an approver
+        $memberUser = User::factory()->create();
+        $this->group->users()->attach($memberUser->id, ['role' => 'member']);
+
+        $this->actingAsUser($memberUser);
 
         $response = $this->postJson("/api/documents/{$document->id}/approve", [
             'comment' => 'Trying to approve',
-        ], $this->withTenantHeaders());
+        ], ['X-Tenant-Group-Ids' => $this->group->id]);
 
         $response->assertForbidden();
     }

@@ -51,9 +51,11 @@ class DatabaseSeeder extends Seeder
             'confirmed_at' => now(),
         ]);
 
-        // ==================== Assign Roles ====================
-        $admin->assignRole('owner');
-        $manager->assignRole('admin');
+        // ==================== Assign Spatie Roles ====================
+        // These are global roles for the Spatie permission system
+        // The per-group role is defined in the user_groups pivot table
+        $admin->assignRole('admin');
+        $manager->assignRole('manager');
         $user->assignRole('member');
 
         // ==================== Group ====================
@@ -62,10 +64,10 @@ class DatabaseSeeder extends Seeder
             'owner_id' => $admin->id,
         ]);
 
-        // Add users to group
-        $group->users()->attach($admin->id, ['is_admin' => true]);
-        $group->users()->attach($manager->id, ['is_admin' => true]);
-        $group->users()->attach($user->id, ['is_admin' => false]);
+        // Add users to group with roles: admin, manager, member
+        $group->users()->attach($admin->id, ['role' => 'admin']);
+        $group->users()->attach($manager->id, ['role' => 'manager']);
+        $group->users()->attach($user->id, ['role' => 'member']);
 
         // ==================== Companies ====================
         $companyA = Company::create([
@@ -488,9 +490,9 @@ class DatabaseSeeder extends Seeder
 
         echo "Database seeded successfully!\n";
         echo "Users:\n";
-        echo "  - admin@taxfollowup.com / password (Admin)\n";
+        echo "  - admin@taxfollowup.com / password (Admin - Group Owner)\n";
         echo "  - manager@taxfollowup.com / password (Manager)\n";
-        echo "  - user@taxfollowup.com / password (User)\n";
+        echo "  - user@taxfollowup.com / password (Member)\n";
         echo "Tasks created: 7 (various statuses)\n";
         echo "Companies: 3\n";
         echo "Obligations: 3\n";

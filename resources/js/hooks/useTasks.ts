@@ -56,7 +56,11 @@ export function useUpdateTask() {
       tasksApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Invalidate both string and number versions of the id (URL params are strings)
       queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', String(id)] });
+      queryClient.invalidateQueries({ queryKey: ['task-timeline', id] });
+      queryClient.invalidateQueries({ queryKey: ['task-timeline', String(id)] });
     },
   });
 }

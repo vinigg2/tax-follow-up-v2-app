@@ -59,7 +59,7 @@ class GroupController extends Controller
         ]);
 
         // Add creator as admin
-        $group->users()->attach($request->user()->id, ['is_admin' => true]);
+        $group->users()->attach($request->user()->id, ['role' => 'admin']);
 
         // Return 'team' key when called via /teams endpoint for frontend compatibility
         $key = str_contains($request->path(), 'teams') ? 'team' : 'group';
@@ -120,7 +120,7 @@ class GroupController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'avatar' => $user->avatar,
-                'is_admin' => (bool) $user->pivot->is_admin,
+                'role' => $user->pivot->role,
             ];
         });
 
@@ -166,7 +166,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Usuario ja e membro deste grupo.'], 400);
         }
 
-        $group->users()->attach($userId, ['is_admin' => false]);
+        $group->users()->attach($userId, ['role' => 'member']);
 
         return response()->json(['message' => 'Membro adicionado com sucesso!']);
     }
@@ -184,10 +184,10 @@ class GroupController extends Controller
         }
 
         $request->validate([
-            'is_admin' => 'required|boolean',
+            'role' => 'required|string|in:admin,manager,member',
         ]);
 
-        $group->users()->updateExistingPivot($userId, ['is_admin' => $request->is_admin]);
+        $group->users()->updateExistingPivot($userId, ['role' => $request->role]);
 
         return response()->json(['message' => 'Funcao do usuario atualizada com sucesso!']);
     }

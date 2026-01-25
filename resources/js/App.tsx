@@ -13,6 +13,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import Dashboard from './pages/dashboard/Dashboard';
 import TasksIndex from './pages/tasks/TasksIndex';
 import TaskView from './pages/tasks/TaskView';
+import ApprovalsIndex from './pages/approvals/ApprovalsIndex';
 import ObligationsIndex from './pages/obligations/ObligationsIndex';
 import CompaniesIndex from './pages/companies/CompaniesIndex';
 import TeamsIndex from './pages/teams/TeamsIndex';
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/tasks" element={<TasksIndex />} />
         <Route path="/tasks/:id" element={<TaskView />} />
+        <Route path="/approvals" element={<ApprovalsIndex />} />
         <Route path="/obligations" element={<ObligationsIndex />} />
         <Route path="/companies" element={<CompaniesIndex />} />
         <Route path="/teams" element={<TeamsIndex />} />

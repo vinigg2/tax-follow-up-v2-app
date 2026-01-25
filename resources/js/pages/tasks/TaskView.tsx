@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Building2,
@@ -17,8 +18,9 @@ import {
   Archive,
   Send,
   ListTodo,
+  Loader2,
 } from 'lucide-react';
-import { useTask, useTaskTimeline } from '@/hooks/useTasks';
+import { useTask, useTaskTimeline, useAddTimelineEntry } from '@/hooks/useTasks';
 import { useTaskChecklists } from '@/hooks/useChecklists';
 import { ScreenLoader } from '@/components/screen-loader';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,16 +37,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChecklistManager } from '@/components/tasks/ChecklistManager';
+import { TaskFormDrawer } from '@/components/tasks/TaskFormDrawer';
+import { DocumentManager } from '@/components/documents';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import { getInitials } from '@/lib/helpers';
-
-interface TaskDocument {
-  id: number;
-  name: string;
-  status: string;
-  is_obligatory: boolean;
-}
+import { useAuth } from '@/hooks/useAuth';
 
 interface TimelineEntry {
   id: number;
@@ -66,11 +64,14 @@ export default function TaskView() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
 
   const { data: taskData, isLoading: taskLoading } = useTask(id);
   const { data: timelineData, isLoading: timelineLoading } = useTaskTimeline(id);
   const { data: checklistData, isLoading: checklistLoading } = useTaskChecklists(id);
+  const addTimelineEntry = useAddTimelineEntry();
 
   if (taskLoading) return <ScreenLoader />;
 
@@ -81,8 +82,8 @@ export default function TaskView() {
     return (
       <div className="container-fluid">
         <EmptyState
-          illustration="/images/illustrations/6.svg"
-          illustrationDark="/images/illustrations/6-dark.svg"
+          illustration="/images/illustrations/5.svg"
+          illustrationDark="/images/illustrations/5-dark.svg"
           title="Tarefa nao encontrada"
           description="A tarefa que voce esta procurando nao existe ou foi removida."
           action={{
@@ -104,10 +105,23 @@ export default function TaskView() {
   const totalCount = checklistItems.length;
   const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (task.percent || 0);
 
-  const handleSendComment = () => {
-    if (!newComment.trim()) return;
-    console.log('Enviando comentario:', newComment);
-    setNewComment('');
+  const handleSendComment = async () => {
+    if (!newComment.trim() || !id) return;
+
+    try {
+      await addTimelineEntry.mutateAsync({
+        taskId: id,
+        data: {
+          type: 'free_text',
+          description: newComment.trim(),
+        },
+      });
+      toast.success('Comentario adicionado!');
+      setNewComment('');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Erro ao adicionar comentario');
+    }
   };
 
   return (
@@ -158,7 +172,7 @@ export default function TaskView() {
 
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setEditDrawerOpen(true)}>
             <Edit className="w-4 h-4" />
             <span className="hidden sm:inline">Editar</span>
           </Button>
@@ -317,52 +331,11 @@ export default function TaskView() {
               {/* Tab: Documents */}
               <TabsContent value="documents" className="m-0">
                 <div className="p-6">
-                  {task.documents && task.documents.length > 0 ? (
-                    <div className="space-y-3">
-                      {task.documents.map((doc: TaskDocument) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'flex items-center justify-center w-10 h-10 rounded-lg',
-                              doc.is_obligatory
-                                ? 'bg-red-100 dark:bg-red-900/30'
-                                : 'bg-gray-100 dark:bg-gray-800'
-                            )}>
-                              <FileText className={cn(
-                                'w-5 h-5',
-                                doc.is_obligatory
-                                  ? 'text-red-600 dark:text-red-400'
-                                  : 'text-gray-500 dark:text-gray-400'
-                              )} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {doc.name}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {doc.status}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge
-                            variant={doc.is_obligatory ? 'destructive' : 'secondary'}
-                          >
-                            {doc.is_obligatory ? 'Obrigatorio' : 'Opcional'}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      illustration="/images/illustrations/6.svg"
-                      illustrationDark="/images/illustrations/6-dark.svg"
-                      title="Nenhum documento"
-                      description="Esta tarefa nao possui documentos associados."
-                    />
-                  )}
+                  <DocumentManager
+                    taskId={task.id}
+                    documents={task.documents || []}
+                    currentUserId={user?.id}
+                  />
                 </div>
               </TabsContent>
 
@@ -435,8 +408,8 @@ export default function TaskView() {
                     </div>
                   ) : (
                     <EmptyState
-                      illustration="/images/illustrations/6.svg"
-                      illustrationDark="/images/illustrations/6-dark.svg"
+                      illustration="/images/illustrations/5.svg"
+                      illustrationDark="/images/illustrations/5-dark.svg"
                       title="Nenhuma etapa"
                       description="Esta tarefa nao possui etapas de processo definidas."
                     />
@@ -532,18 +505,34 @@ export default function TaskView() {
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Adicionar comentario..."
                   className="input flex-1"
+                  disabled={addTimelineEntry.isPending}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSendComment();
+                    if (e.key === 'Enter' && !addTimelineEntry.isPending) handleSendComment();
                   }}
                 />
-                <Button onClick={handleSendComment} size="icon">
-                  <Send className="w-4 h-4" />
+                <Button
+                  onClick={handleSendComment}
+                  size="icon"
+                  disabled={addTimelineEntry.isPending || !newComment.trim()}
+                >
+                  {addTimelineEntry.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Edit Task Drawer */}
+      <TaskFormDrawer
+        open={editDrawerOpen}
+        onOpenChange={setEditDrawerOpen}
+        task={task}
+      />
     </div>
   );
 }

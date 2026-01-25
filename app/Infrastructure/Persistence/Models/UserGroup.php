@@ -14,13 +14,13 @@ class UserGroup extends Pivot
     protected $fillable = [
         'user_id',
         'group_id',
-        'is_admin',
+        'role',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_admin' => 'boolean',
+            'role' => 'string',
         ];
     }
 
@@ -38,11 +38,16 @@ class UserGroup extends Pivot
     // Scopes
     public function scopeAdmins($query)
     {
-        return $query->where('is_admin', true);
+        return $query->where('role', 'admin');
+    }
+
+    public function scopeManagers($query)
+    {
+        return $query->where('role', 'manager');
     }
 
     public function scopeMembers($query)
     {
-        return $query->where('is_admin', false);
+        return $query->where('role', 'member');
     }
 }

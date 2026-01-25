@@ -60,6 +60,12 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'groups' => $user->accessibleGroups(),
+            'permissions' => [
+                'admin_groups' => $user->adminGroupIds(),
+                'manager_groups' => $user->managerGroupIds(),
+                'member_groups' => $user->memberGroupIds(),
+                'owner_groups' => $user->ownerGroupIds(),
+            ],
         ]);
     }
 
@@ -130,6 +136,8 @@ class AuthController extends Controller
             'groups' => $user->accessibleGroups(),
             'permissions' => [
                 'admin_groups' => $user->adminGroupIds(),
+                'manager_groups' => $user->managerGroupIds(),
+                'member_groups' => $user->memberGroupIds(),
                 'owner_groups' => $user->ownerGroupIds(),
             ],
         ]);

@@ -30,9 +30,15 @@ abstract class TestCase extends BaseTestCase
             'owner_id' => $this->user->id,
         ]);
 
-        $isAdmin = in_array($role, ['owner', 'admin']);
+        // Map role to pivot: owner/admin -> 'admin', manager -> 'manager', member -> 'member'
+        $pivotRole = match ($role) {
+            'owner', 'admin' => 'admin',
+            'manager' => 'manager',
+            default => 'member',
+        };
+
         $this->user->groups()->attach($this->group->id, [
-            'is_admin' => $isAdmin,
+            'role' => $pivotRole,
         ]);
 
         return $this->user;

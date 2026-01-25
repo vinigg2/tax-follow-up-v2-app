@@ -52,7 +52,7 @@ class UserController extends Controller
             'password' => 'nullable|string|min:6',
             'language' => 'sometimes|in:pt,en',
             'group_id' => 'required|exists:groups,id',
-            'is_admin' => 'sometimes|boolean',
+            'role' => 'sometimes|string|in:admin,manager,member',
         ]);
 
         // Check if user has permission to add users to this group
@@ -77,7 +77,7 @@ class UserController extends Controller
 
         // Add user to the group
         $user->groups()->attach($request->group_id, [
-            'is_admin' => $request->boolean('is_admin', false),
+            'role' => $request->input('role', 'member'),
         ]);
 
         // Send welcome email with password

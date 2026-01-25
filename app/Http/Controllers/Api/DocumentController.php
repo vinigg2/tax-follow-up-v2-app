@@ -11,7 +11,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
@@ -282,7 +284,8 @@ class DocumentController extends Controller
      */
     public function reset(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can reset documents
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $document = Document::whereIn('group_id', $groupIds)
             ->findOrFail($id);
@@ -329,6 +332,8 @@ class DocumentController extends Controller
     public function approve(Request $request, int $id): JsonResponse
     {
         $groupIds = $request->input('accessible_group_ids', []);
+        // Managers and admins can approve documents
+        $contentManagerGroupIds = $request->input('content_manager_group_ids', []);
         $userId = $request->user()->id;
 
         $document = Document::whereIn('group_id', $groupIds)
@@ -344,7 +349,53 @@ class DocumentController extends Controller
             ->where('status', 'pending')
             ->first();
 
+        // If no specific signature, check if user is admin/manager and document needs approval
         if (!$signature) {
+            $canManage = in_array($document->group_id, $contentManagerGroupIds);
+            $needsApproval = $document->status === 'on_approval' && $document->approval_required !== 'N';
+
+            // Admin/Manager can approve any document that is on_approval
+            if ($canManage && $needsApproval) {
+                // Create a signature for this admin and approve it
+                ApproverSignature::create([
+                    'document_id' => $document->id,
+                    'user_id' => $userId,
+                    'sequence' => 999, // High sequence to indicate admin override
+                    'status' => 'signed',
+                    'signed_at' => now(),
+                    'comment' => $request->comment,
+                ]);
+
+                Timeline::createEntry(
+                    'approved',
+                    $document->task_id,
+                    $userId,
+                    $request->comment ?? 'Documento aprovado (admin)',
+                    $document->id
+                );
+
+                // Mark document as finished
+                $document->update([
+                    'status' => 'finished',
+                    'finish_date' => now(),
+                ]);
+
+                Timeline::createEntry(
+                    'finished',
+                    $document->task_id,
+                    null,
+                    "Documento '{$document->name}' finalizado",
+                    $document->id
+                );
+
+                $this->updateTaskProgress($document->task);
+
+                return response()->json([
+                    'document' => $document->fresh()->load(['approverSignatures.user']),
+                    'message' => 'Documento aprovado com sucesso!',
+                ]);
+            }
+
             return response()->json([
                 'message' => 'Voce nao tem aprovacao pendente para este documento.',
             ], 403);
@@ -379,6 +430,8 @@ class DocumentController extends Controller
     public function reject(Request $request, int $id): JsonResponse
     {
         $groupIds = $request->input('accessible_group_ids', []);
+        // Managers and admins can reject documents
+        $contentManagerGroupIds = $request->input('content_manager_group_ids', []);
         $userId = $request->user()->id;
 
         $document = Document::whereIn('group_id', $groupIds)
@@ -394,7 +447,42 @@ class DocumentController extends Controller
             ->where('status', 'pending')
             ->first();
 
+        // If no specific signature, check if user is admin/manager and document needs approval
         if (!$signature) {
+            $canManage = in_array($document->group_id, $contentManagerGroupIds);
+            $needsApproval = $document->status === 'on_approval' && $document->approval_required !== 'N';
+
+            // Admin/Manager can reject any document that is on_approval
+            if ($canManage && $needsApproval) {
+                // Create a signature for this admin with rejection
+                ApproverSignature::create([
+                    'document_id' => $document->id,
+                    'user_id' => $userId,
+                    'sequence' => 999, // High sequence to indicate admin override
+                    'status' => 'rejected',
+                    'signed_at' => now(),
+                    'comment' => $request->comment,
+                ]);
+
+                // Mark document as needing restart
+                $document->update([
+                    'status' => 'restarted',
+                ]);
+
+                Timeline::createEntry(
+                    'rejected',
+                    $document->task_id,
+                    $userId,
+                    $request->comment,
+                    $document->id
+                );
+
+                return response()->json([
+                    'document' => $document->fresh()->load(['approverSignatures.user']),
+                    'message' => 'Documento rejeitado.',
+                ]);
+            }
+
             return response()->json([
                 'message' => 'Voce nao tem aprovacao pendente para este documento.',
             ], 403);
@@ -441,16 +529,56 @@ class DocumentController extends Controller
             ], 404);
         }
 
-        // Generate temporary URL
-        $url = Storage::temporaryUrl(
-            $document->document_path,
-            now()->addMinutes(30)
-        );
+        $expiresAt = now()->addMinutes(30);
+
+        // For S3, use temporary URL
+        if (config('filesystems.default') === 's3') {
+            $url = Storage::temporaryUrl(
+                $document->document_path,
+                $expiresAt
+            );
+        } else {
+            // For local storage, generate a signed URL to the download endpoint
+            $url = URL::temporarySignedRoute(
+                'api.documents.download',
+                $expiresAt,
+                ['id' => $document->id]
+            );
+        }
 
         return response()->json([
             'download_url' => $url,
-            'expires_at' => now()->addMinutes(30)->toISOString(),
+            'expires_at' => $expiresAt->toISOString(),
         ]);
+    }
+
+    /**
+     * Download a document file (for local storage)
+     * Route uses 'signed' middleware for URL validation
+     */
+    public function download(Request $request, int $id): StreamedResponse|JsonResponse
+    {
+        $document = Document::findOrFail($id);
+
+        if (!$document->document_path) {
+            return response()->json([
+                'message' => 'Documento sem arquivo.',
+            ], 404);
+        }
+
+        if (!Storage::exists($document->document_path)) {
+            return response()->json([
+                'message' => 'Arquivo nao encontrado.',
+            ], 404);
+        }
+
+        $filename = $document->name;
+        $extension = pathinfo($document->document_path, PATHINFO_EXTENSION);
+        if ($extension && !str_ends_with($filename, ".{$extension}")) {
+            $filename .= ".{$extension}";
+        }
+
+        return Storage::download($document->document_path, $filename);
     }
 
     // ==================== Private Methods ====================

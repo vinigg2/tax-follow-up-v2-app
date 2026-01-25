@@ -1,10 +1,12 @@
 'use client';
 
-import { JSX, useCallback } from 'react';
+import { JSX, useCallback, useMemo } from 'react';
 import { MENU_SIDEBAR } from '@/config/menu.config';
 import { MenuConfig, MenuItem } from '@/config/types';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { GroupRole } from '@/context/AuthContext';
 import {
   AccordionMenu,
   AccordionMenuClassNames,
@@ -18,8 +20,65 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// Role hierarchy: admin > manager > member
+const ROLE_HIERARCHY: Record<GroupRole, number> = {
+  admin: 3,
+  manager: 2,
+  member: 1,
+};
+
 export function SidebarMenu() {
   const { pathname } = useLocation();
+  const { permissions } = useAuth();
+
+  /**
+   * Get the highest role the user has across all groups
+   * Returns 'admin' if user is admin in any group
+   * Returns 'manager' if user is manager in any group (but not admin in any)
+   * Returns 'member' if user is only member in all groups
+   */
+  const highestRole = useMemo((): GroupRole => {
+    const adminGroups = permissions.admin_groups || [];
+    const ownerGroups = permissions.owner_groups || [];
+    const managerGroups = permissions.manager_groups || [];
+
+    // Owner groups count as admin
+    if (adminGroups.length > 0 || ownerGroups.length > 0) {
+      return 'admin';
+    }
+
+    if (managerGroups.length > 0) {
+      return 'manager';
+    }
+
+    return 'member';
+  }, [permissions]);
+
+  /**
+   * Check if user can see a menu item based on minRole requirement
+   */
+  const canSeeMenuItem = useCallback(
+    (item: MenuItem): boolean => {
+      // If no minRole is set, everyone can see it
+      if (!item.minRole) {
+        return true;
+      }
+
+      // Check if user's highest role meets or exceeds the required role
+      const requiredLevel = ROLE_HIERARCHY[item.minRole];
+      const userLevel = ROLE_HIERARCHY[highestRole];
+
+      return userLevel >= requiredLevel;
+    },
+    [highestRole]
+  );
+
+  /**
+   * Filter menu items based on user permissions
+   */
+  const filteredMenu = useMemo((): MenuConfig => {
+    return MENU_SIDEBAR.filter((item) => canSeeMenuItem(item));
+  }, [canSeeMenuItem]);
 
   const matchPath = useCallback(
     (path: string): boolean => {
@@ -38,7 +97,7 @@ export function SidebarMenu() {
 
       return false;
     },
-    [pathname],
+    [pathname]
   );
 
   const classNames: AccordionMenuClassNames = {
@@ -109,7 +168,7 @@ export function SidebarMenu() {
 
   const buildMenuItemRootDisabled = (
     item: MenuItem,
-    index: number,
+    index: number
   ): JSX.Element => {
     return (
       <AccordionMenuItem
@@ -130,7 +189,7 @@ export function SidebarMenu() {
 
   const buildMenuItemChildren = (
     items: MenuConfig,
-    level: number = 0,
+    level: number = 0
   ): JSX.Element[] => {
     return items.map((item: MenuItem, index: number) => {
       if (item.disabled) {
@@ -144,7 +203,7 @@ export function SidebarMenu() {
   const buildMenuItemChild = (
     item: MenuItem,
     index: number,
-    level: number = 0,
+    level: number = 0
   ): JSX.Element => {
     if (item.children) {
       return (
@@ -173,13 +232,13 @@ export function SidebarMenu() {
             className={cn(
               'ps-4',
               !item.collapse && 'relative',
-              !item.collapse && (level > 0 ? '' : ''),
+              !item.collapse && (level > 0 ? '' : '')
             )}
           >
             <AccordionMenuGroup>
               {buildMenuItemChildren(
                 item.children,
-                item.collapse ? level : level + 1,
+                item.collapse ? level : level + 1
               )}
             </AccordionMenuGroup>
           </AccordionMenuSubContent>
@@ -203,7 +262,7 @@ export function SidebarMenu() {
   const buildMenuItemChildDisabled = (
     item: MenuItem,
     index: number,
-    level: number = 0,
+    level: number = 0
   ): JSX.Element => {
     return (
       <AccordionMenuItem
@@ -234,7 +293,7 @@ export function SidebarMenu() {
         collapsible
         classNames={classNames}
       >
-        {buildMenu(MENU_SIDEBAR)}
+        {buildMenu(filteredMenu)}
       </AccordionMenu>
     </ScrollArea>
   );

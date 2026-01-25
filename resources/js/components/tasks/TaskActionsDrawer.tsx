@@ -140,7 +140,7 @@ export function TaskActionsDrawer({
         <button
           className={cn(
             'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all',
-            showTriggerOnHover && 'opacity-0 group-hover:opacity-100',
+            showTriggerOnHover && 'md:opacity-0 md:group-hover:opacity-100',
             triggerClassName
           )}
           onClick={(e) => e.stopPropagation()}

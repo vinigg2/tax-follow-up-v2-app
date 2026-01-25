@@ -175,6 +175,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('invitations/{code}', [InvitationController::class, 'show']);
 });
 
+// Document download (uses signed URL for auth)
+Route::get('documents/{id}/download', [DocumentController::class, 'download'])
+    ->name('api.documents.download')
+    ->middleware('signed');
+
 // Public routes (cron jobs, webhooks)
 Route::prefix('cron')->middleware('throttle:10,1')->group(function () {
     Route::post('update-task-status', [CronController::class, 'updateTaskStatus']);

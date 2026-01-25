@@ -84,7 +84,7 @@ class User extends Authenticatable
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class, 'user_groups')
-            ->withPivot('is_admin')
+            ->withPivot('role')
             ->withTimestamps();
     }
 
@@ -139,9 +139,33 @@ class User extends Authenticatable
 
     public function adminGroupIds(): array
     {
+        // Admins by pivot role
+        $adminGroups = $this->groups()
+            ->where('deleted', false)
+            ->wherePivot('role', 'admin')
+            ->pluck('groups.id')
+            ->toArray();
+
+        // Owners have admin privileges
+        $ownerGroups = $this->ownerGroupIds();
+
+        return array_values(array_unique(array_merge($adminGroups, $ownerGroups)));
+    }
+
+    public function managerGroupIds(): array
+    {
         return $this->groups()
             ->where('deleted', false)
-            ->wherePivot('is_admin', true)
+            ->wherePivot('role', 'manager')
+            ->pluck('groups.id')
+            ->toArray();
+    }
+
+    public function memberGroupIds(): array
+    {
+        return $this->groups()
+            ->where('deleted', false)
+            ->wherePivot('role', 'member')
             ->pluck('groups.id')
             ->toArray();
     }
@@ -161,9 +185,17 @@ class User extends Authenticatable
 
     public function isAdminOf(Group $group): bool
     {
+        return $this->isOwnerOf($group) || $this->groups()
+            ->where('groups.id', $group->id)
+            ->wherePivot('role', 'admin')
+            ->exists();
+    }
+
+    public function isManagerOf(Group $group): bool
+    {
         return $this->groups()
             ->where('groups.id', $group->id)
-            ->wherePivot('is_admin', true)
+            ->wherePivot('role', 'manager')
             ->exists();
     }
 
@@ -174,9 +206,37 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Get the user's role in a specific group
+     * Returns: 'admin', 'manager', 'member', or null if not a member
+     */
+    public function getRoleInGroup(Group $group): ?string
+    {
+        if ($this->isOwnerOf($group)) {
+            return 'admin'; // Owner has admin privileges
+        }
+
+        $membership = $this->groups()
+            ->where('groups.id', $group->id)
+            ->first();
+
+        return $membership?->pivot?->role;
+    }
+
+    /**
+     * Check if user can manage users and companies in a group (admin only)
+     */
     public function canManageGroup(Group $group): bool
     {
-        return $this->isOwnerOf($group) || $this->isAdminOf($group);
+        return $this->isAdminOf($group);
+    }
+
+    /**
+     * Check if user can manage tasks, obligations, etc in a group (admin or manager)
+     */
+    public function canManageContent(Group $group): bool
+    {
+        return $this->isAdminOf($group) || $this->isManagerOf($group);
     }
 
     public function generateConfirmationToken(): string

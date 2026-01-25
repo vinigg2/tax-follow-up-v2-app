@@ -8,7 +8,14 @@ import {
   FileText,
   X,
   CheckCheck,
+  Upload,
+  FileCheck,
+  FileX,
+  ClipboardCheck,
+  Loader2,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,18 +24,15 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-type NotificationType = 'task_due' | 'task_late' | 'task_completed' | 'system';
-
-interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  link?: string;
-}
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useNotifications,
+  useUnreadCount,
+  useMarkAsRead,
+  useMarkAllAsRead,
+  useDeleteNotification,
+} from '@/hooks/useNotifications';
+import { NotificationType } from '@/api/notifications';
 
 const NOTIFICATION_CONFIG: Record<
   NotificationType,
@@ -49,6 +53,26 @@ const NOTIFICATION_CONFIG: Record<
     color: 'text-success-600 dark:text-success-400',
     bg: 'bg-success-100 dark:bg-success-900/30',
   },
+  document_uploaded: {
+    icon: Upload,
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-100 dark:bg-blue-900/30',
+  },
+  document_approved: {
+    icon: FileCheck,
+    color: 'text-success-600 dark:text-success-400',
+    bg: 'bg-success-100 dark:bg-success-900/30',
+  },
+  document_rejected: {
+    icon: FileX,
+    color: 'text-error-600 dark:text-error-400',
+    bg: 'bg-error-100 dark:bg-error-900/30',
+  },
+  approval_pending: {
+    icon: ClipboardCheck,
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-100 dark:bg-amber-900/30',
+  },
   system: {
     icon: FileText,
     color: 'text-blue-600 dark:text-blue-400',
@@ -56,65 +80,37 @@ const NOTIFICATION_CONFIG: Record<
   },
 };
 
-// Mock notifications - replace with real API data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    type: 'task_late',
-    title: 'Tarefa atrasada',
-    message: 'DCTF Mensal - Empresa ABC esta atrasada',
-    time: 'Ha 2 horas',
-    read: false,
-    link: '/tasks/1',
-  },
-  {
-    id: '2',
-    type: 'task_due',
-    title: 'Prazo proximo',
-    message: 'EFD-Contribuicoes vence em 2 dias',
-    time: 'Ha 4 horas',
-    read: false,
-    link: '/tasks/2',
-  },
-  {
-    id: '3',
-    type: 'task_completed',
-    title: 'Tarefa concluida',
-    message: 'SPED Fiscal foi finalizada por Joao Silva',
-    time: 'Ontem',
-    read: true,
-    link: '/tasks/3',
-  },
-  {
-    id: '4',
-    type: 'system',
-    title: 'Nova obrigacao',
-    message: 'DIRF 2024 foi adicionada automaticamente',
-    time: 'Ha 2 dias',
-    read: true,
-    link: '/tasks/4',
-  },
-];
+function formatNotificationTime(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+  } catch {
+    return dateString;
+  }
+}
 
 export function NotificationsDropdown() {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(MOCK_NOTIFICATIONS);
   const [isOpen, setIsOpen] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: notificationsData, isLoading } = useNotifications(1, 10);
+  const { data: unreadData } = useUnreadCount();
+  const markAsReadMutation = useMarkAsRead();
+  const markAllAsReadMutation = useMarkAllAsRead();
+  const deleteNotificationMutation = useDeleteNotification();
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const notifications = notificationsData?.data ?? [];
+  const unreadCount = unreadData?.count ?? 0;
+
+  const handleMarkAsRead = (id: string) => {
+    markAsReadMutation.mutate(id);
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAllAsRead = () => {
+    markAllAsReadMutation.mutate();
   };
 
-  const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  const handleRemoveNotification = (id: string) => {
+    deleteNotificationMutation.mutate(id);
   };
 
   return (
@@ -156,9 +152,14 @@ export function NotificationsDropdown() {
               variant="ghost"
               size="sm"
               className="h-7 text-xs text-muted-foreground hover:text-foreground"
-              onClick={markAllAsRead}
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
             >
-              <CheckCheck className="size-3.5 mr-1" />
+              {markAllAsReadMutation.isPending ? (
+                <Loader2 className="size-3.5 mr-1 animate-spin" />
+              ) : (
+                <CheckCheck className="size-3.5 mr-1" />
+              )}
               Marcar todas como lidas
             </Button>
           )}
@@ -166,7 +167,20 @@ export function NotificationsDropdown() {
 
         {/* Notifications List */}
         <ScrollArea className="max-h-[400px]">
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-2 w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
                 <Bell className="size-6 text-muted-foreground" />
@@ -181,15 +195,17 @@ export function NotificationsDropdown() {
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((notification) => {
-                const config = NOTIFICATION_CONFIG[notification.type];
+                const notificationType = notification.data.type as NotificationType;
+                const config = NOTIFICATION_CONFIG[notificationType] ?? NOTIFICATION_CONFIG.system;
                 const Icon = config.icon;
+                const isRead = !!notification.read_at;
 
                 return (
                   <div
                     key={notification.id}
                     className={cn(
                       'relative group px-4 py-3 hover:bg-muted/50 transition-colors',
-                      !notification.read && 'bg-primary/5'
+                      !isRead && 'bg-primary/5'
                     )}
                   >
                     <div className="flex gap-3">
@@ -210,33 +226,34 @@ export function NotificationsDropdown() {
                             <p
                               className={cn(
                                 'text-sm',
-                                notification.read
+                                isRead
                                   ? 'text-foreground'
                                   : 'text-foreground font-medium'
                               )}
                             >
-                              {notification.title}
+                              {notification.data.title}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                              {notification.message}
+                              {notification.data.message}
                             </p>
                             <p className="text-[10px] text-muted-foreground/70 mt-1">
-                              {notification.time}
+                              {formatNotificationTime(notification.created_at)}
                             </p>
                           </div>
 
                           {/* Actions */}
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!notification.read && (
+                            {!isRead && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="size-6 p-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  markAsRead(notification.id);
+                                  handleMarkAsRead(notification.id);
                                 }}
                                 title="Marcar como lida"
+                                disabled={markAsReadMutation.isPending}
                               >
                                 <CheckCircle className="size-3.5 text-muted-foreground" />
                               </Button>
@@ -247,9 +264,10 @@ export function NotificationsDropdown() {
                               className="size-6 p-0"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                removeNotification(notification.id);
+                                handleRemoveNotification(notification.id);
                               }}
                               title="Remover"
+                              disabled={deleteNotificationMutation.isPending}
                             >
                               <X className="size-3.5 text-muted-foreground" />
                             </Button>
@@ -257,12 +275,14 @@ export function NotificationsDropdown() {
                         </div>
 
                         {/* Link */}
-                        {notification.link && (
+                        {notification.data.link && (
                           <Link
-                            to={notification.link}
+                            to={notification.data.link}
                             className="text-xs text-primary hover:underline mt-1 inline-block"
                             onClick={() => {
-                              markAsRead(notification.id);
+                              if (!isRead) {
+                                handleMarkAsRead(notification.id);
+                              }
                               setIsOpen(false);
                             }}
                           >
@@ -273,7 +293,7 @@ export function NotificationsDropdown() {
                     </div>
 
                     {/* Unread indicator */}
-                    {!notification.read && (
+                    {!isRead && (
                       <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
                     )}
                   </div>

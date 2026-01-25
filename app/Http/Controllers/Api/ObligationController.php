@@ -81,7 +81,7 @@ class ObligationController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         if (empty($groupIds)) {
             return response()->json(['message' => 'Sem permissao para criar obrigacoes'], 403);
@@ -130,7 +130,7 @@ class ObligationController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -181,7 +181,7 @@ class ObligationController extends Controller
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -199,7 +199,7 @@ class ObligationController extends Controller
      */
     public function generateTasks(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -275,7 +275,7 @@ class ObligationController extends Controller
      */
     public function updateDynamicFields(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -300,7 +300,7 @@ class ObligationController extends Controller
      */
     public function deleteDynamicField(Request $request, int $id, string $field): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -322,7 +322,7 @@ class ObligationController extends Controller
      */
     public function updateFlowchart(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $obligation = Obligation::whereIn('group_id', $groupIds)
             ->where('deleted', false)

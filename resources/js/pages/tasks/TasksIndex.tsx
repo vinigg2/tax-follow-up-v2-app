@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
 import { useTeams } from '@/hooks/useTeams';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -81,6 +82,7 @@ interface Task {
 export default function TasksIndex() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { permissions } = useAuth();
   const [method, setMethod] = useState('currentIteration');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
@@ -88,6 +90,14 @@ export default function TasksIndex() {
   const [companyFilter, setCompanyFilter] = useState<number | undefined>();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+
+  // Check if user can manage content (admin or manager in any group)
+  const canManageContent = useMemo(() => {
+    const adminGroups = permissions.admin_groups || [];
+    const ownerGroups = permissions.owner_groups || [];
+    const managerGroups = permissions.manager_groups || [];
+    return adminGroups.length > 0 || ownerGroups.length > 0 || managerGroups.length > 0;
+  }, [permissions]);
 
   // Pass show_completed: true for kanban view to show finished tasks
   const { data, isLoading, error } = useTasks(method, {
@@ -260,20 +270,24 @@ export default function TasksIndex() {
             </button>
           </div>
 
-          {/* Create Task Button */}
-          <Button
-            onClick={() => setIsCreateDrawerOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Nova Tarefa</span>
-            <span className="sm:hidden">Nova</span>
-          </Button>
+          {/* Create Task Button - Only for managers and admins */}
+          {canManageContent && (
+            <Button
+              onClick={() => setIsCreateDrawerOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Nova Tarefa</span>
+              <span className="sm:hidden">Nova</span>
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Task Form Drawer */}
-      <TaskFormDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
+      {canManageContent && (
+        <TaskFormDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -366,16 +380,18 @@ export default function TasksIndex() {
       ) : filteredTasks.length === 0 ? (
         <div className="card">
           <EmptyState
-            illustration="/images/illustrations/6.svg"
-            illustrationDark="/images/illustrations/6-dark.svg"
+            illustration="/images/illustrations/5.svg"
+            illustrationDark="/images/illustrations/5-dark.svg"
             title={searchTerm ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa'}
             description={
               searchTerm
                 ? 'Tente ajustar os termos da busca'
-                : 'Nao ha tarefas nesta categoria. Crie uma nova tarefa para comecar.'
+                : canManageContent
+                  ? 'Nao ha tarefas nesta categoria. Crie uma nova tarefa para comecar.'
+                  : 'Nao ha tarefas nesta categoria.'
             }
             action={
-              !searchTerm
+              !searchTerm && canManageContent
                 ? {
                     label: 'Nova Tarefa',
                     onClick: () => setIsCreateDrawerOpen(true),

@@ -24,7 +24,7 @@ class UserTest extends TestCase
     public function test_can_list_users(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -48,7 +48,7 @@ class UserTest extends TestCase
     {
         $otherGroup = Group::factory()->create();
         $otherUser = User::factory()->create();
-        $otherGroup->users()->attach($otherUser->id, ['is_admin' => false]);
+        $otherGroup->users()->attach($otherUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -63,8 +63,8 @@ class UserTest extends TestCase
         $activeUser = User::factory()->create(['is_active' => true]);
         $inactiveUser = User::factory()->create(['is_active' => false]);
 
-        $this->group->users()->attach($activeUser->id, ['is_admin' => false]);
-        $this->group->users()->attach($inactiveUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($activeUser->id, ['role' => 'member']);
+        $this->group->users()->attach($inactiveUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -83,8 +83,8 @@ class UserTest extends TestCase
         $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
         $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
-        $this->group->users()->attach($user1->id, ['is_admin' => false]);
-        $this->group->users()->attach($user2->id, ['is_admin' => false]);
+        $this->group->users()->attach($user1->id, ['role' => 'member']);
+        $this->group->users()->attach($user2->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -126,14 +126,14 @@ class UserTest extends TestCase
             'name' => 'Group Member',
             'email' => 'member@example.com',
             'group_id' => $this->group->id,
-            'is_admin' => true,
+            'role' => 'admin',
         ], $this->withTenantHeaders());
 
         $response->assertCreated();
 
         $newUser = User::where('email', 'member@example.com')->first();
         $this->assertTrue($newUser->groups()->where('groups.id', $this->group->id)->exists());
-        $this->assertEquals(1, $newUser->groups()->first()->pivot->is_admin);
+        $this->assertEquals('admin', $newUser->groups()->first()->pivot->role);
     }
 
     public function test_cannot_create_user_without_required_fields(): void
@@ -182,7 +182,7 @@ class UserTest extends TestCase
     public function test_can_show_user(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -198,7 +198,7 @@ class UserTest extends TestCase
     {
         $otherGroup = Group::factory()->create();
         $otherUser = User::factory()->create();
-        $otherGroup->users()->attach($otherUser->id, ['is_admin' => false]);
+        $otherGroup->users()->attach($otherUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -226,7 +226,7 @@ class UserTest extends TestCase
     public function test_user_cannot_update_other_users_profile(): void
     {
         $otherUser = User::factory()->create();
-        $this->group->users()->attach($otherUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($otherUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -270,7 +270,7 @@ class UserTest extends TestCase
     public function test_cannot_update_other_users_notifications(): void
     {
         $otherUser = User::factory()->create();
-        $this->group->users()->attach($otherUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($otherUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -305,7 +305,7 @@ class UserTest extends TestCase
     public function test_cannot_upload_avatar_for_other_user(): void
     {
         $otherUser = User::factory()->create();
-        $this->group->users()->attach($otherUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($otherUser->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -335,7 +335,7 @@ class UserTest extends TestCase
     public function test_admin_can_deactivate_user(): void
     {
         $member = User::factory()->create(['is_active' => true]);
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -362,8 +362,8 @@ class UserTest extends TestCase
         $member = User::factory()->create();
         $targetUser = User::factory()->create();
 
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
-        $this->group->users()->attach($targetUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
+        $this->group->users()->attach($targetUser->id, ['role' => 'member']);
 
         $this->actingAsUser($member);
 
@@ -379,7 +379,7 @@ class UserTest extends TestCase
     public function test_admin_can_toggle_user_active_status(): void
     {
         $member = User::factory()->create(['is_active' => true]);
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -394,7 +394,7 @@ class UserTest extends TestCase
     public function test_can_reactivate_user(): void
     {
         $member = User::factory()->create(['is_active' => false]);
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -436,7 +436,7 @@ class UserTest extends TestCase
     public function test_admin_can_update_other_users_password(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -479,8 +479,8 @@ class UserTest extends TestCase
         $member = User::factory()->create();
         $targetUser = User::factory()->create();
 
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
-        $this->group->users()->attach($targetUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
+        $this->group->users()->attach($targetUser->id, ['role' => 'member']);
 
         $this->actingAsUser($member);
 

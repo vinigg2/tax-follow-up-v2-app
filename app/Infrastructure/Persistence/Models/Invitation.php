@@ -101,8 +101,9 @@ class Invitation extends Model
         $this->is_valid = false;
         $this->save();
 
-        // Add user to group
-        $this->group->addUser($user, $this->is_admin_invitation);
+        // Add user to group with role based on is_admin_invitation
+        $role = $this->is_admin_invitation ? 'admin' : 'member';
+        $this->group->addUser($user, $role);
     }
 
     public function invalidate(): void

@@ -1,4 +1,5 @@
 import { type LucideIcon } from 'lucide-react';
+import { GroupRole } from '@/context/AuthContext';
 
 export interface MenuItem {
   title?: string;
@@ -13,8 +14,16 @@ export interface MenuItem {
   collapseTitle?: string;
   expandTitle?: string;
   badge?: string;
-  hidden?: boolean = false;
+  hidden?: boolean;
   separator?: boolean;
+  /**
+   * Minimum role required to see this menu item.
+   * If not set, the item is visible to all roles.
+   * 'admin' = only admins
+   * 'manager' = admins and managers
+   * 'member' = everyone (default)
+   */
+  minRole?: GroupRole;
 }
 
 export type MenuConfig = MenuItem[];

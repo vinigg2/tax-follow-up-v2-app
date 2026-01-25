@@ -10,6 +10,21 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * Roles and Permissions:
+     *
+     * MEMBER (visualizador):
+     * - Pode apenas visualizar tudo
+     * - Pode fazer upload de documentos (submeter para aprovacao)
+     * - NAO pode executar nenhuma outra acao
+     *
+     * MANAGER (gestor):
+     * - Pode fazer tudo EXCETO:
+     *   - Cadastrar novos usuarios
+     *   - Cadastrar novas empresas
+     *
+     * ADMIN (administrador):
+     * - Pode fazer TUDO
      */
     public function run(): void
     {
@@ -79,51 +94,57 @@ class RolesAndPermissionsSeeder extends Seeder
             );
         }
 
-        // Create roles and assign permissions
-        // Owner - Full access
-        $ownerRole = Role::firstOrCreate(
-            ['name' => 'owner', 'guard_name' => 'sanctum']
-        );
-        $ownerRole->syncPermissions(Permission::all());
-
-        // Admin - Almost full access, no system settings
+        // ========================================
+        // ADMIN - Full access (can do EVERYTHING)
+        // ========================================
         $adminRole = Role::firstOrCreate(
             ['name' => 'admin', 'guard_name' => 'sanctum']
         );
-        $adminRole->syncPermissions([
-            // Tasks
+        $adminRole->syncPermissions(Permission::all());
+
+        // ========================================
+        // MANAGER - Can do everything EXCEPT:
+        // - Create/Update/Delete users
+        // - Create/Update/Delete companies
+        // ========================================
+        $managerRole = Role::firstOrCreate(
+            ['name' => 'manager', 'guard_name' => 'sanctum']
+        );
+        $managerRole->syncPermissions([
+            // Tasks - FULL ACCESS
             'tasks.view',
             'tasks.create',
             'tasks.update',
+            'tasks.delete',
             'tasks.archive',
             'tasks.assign',
 
-            // Documents
+            // Documents - FULL ACCESS
             'documents.view',
             'documents.upload',
             'documents.approve',
             'documents.reject',
+            'documents.delete',
 
-            // Obligations
+            // Obligations - FULL ACCESS
             'obligations.view',
             'obligations.create',
             'obligations.update',
+            'obligations.delete',
             'obligations.generate_tasks',
 
-            // Companies
+            // Companies - VIEW ONLY (cannot create/update/delete)
             'companies.view',
-            'companies.create',
-            'companies.update',
 
-            // Teams
+            // Teams - PARTIAL (can view and manage members, cannot create/update/delete)
             'teams.view',
             'teams.manage_members',
 
-            // Users
+            // Users - VIEW AND INVITE ONLY (cannot create/update/delete)
             'users.view',
             'users.invite',
 
-            // Reports
+            // Reports/Dashboard - FULL ACCESS
             'reports.view',
             'reports.export',
             'dashboard.view',
@@ -131,38 +152,46 @@ class RolesAndPermissionsSeeder extends Seeder
             'dashboard.company_metrics',
         ]);
 
-        // Member - Basic access
+        // ========================================
+        // MEMBER - Can ONLY VIEW and UPLOAD documents
+        // ========================================
         $memberRole = Role::firstOrCreate(
             ['name' => 'member', 'guard_name' => 'sanctum']
         );
         $memberRole->syncPermissions([
-            // Tasks
+            // Tasks - VIEW ONLY
             'tasks.view',
-            'tasks.update',
 
-            // Documents
+            // Documents - VIEW and UPLOAD (to submit for approval)
             'documents.view',
             'documents.upload',
 
-            // Obligations
+            // Obligations - VIEW ONLY
             'obligations.view',
 
-            // Companies
+            // Companies - VIEW ONLY
             'companies.view',
 
-            // Teams
+            // Teams - VIEW ONLY
             'teams.view',
 
-            // Users
+            // Users - VIEW ONLY
             'users.view',
 
-            // Reports
+            // Reports/Dashboard - VIEW ONLY
             'reports.view',
             'dashboard.view',
         ]);
 
-        $this->command->info('Roles and permissions created successfully!');
-        $this->command->info('Roles: owner, admin, member');
+        // Remove the old 'owner' role if it exists (no longer needed)
+        Role::where('name', 'owner')->where('guard_name', 'sanctum')->delete();
+
+        $this->command->info('Roles and permissions updated successfully!');
+        $this->command->info('Roles: admin, manager, member');
         $this->command->info('Permissions: ' . count($permissions) . ' total');
+        $this->command->newLine();
+        $this->command->info('ADMIN: Can do everything');
+        $this->command->info('MANAGER: Can do everything except manage users and companies');
+        $this->command->info('MEMBER: Can only view and upload documents');
     }
 }

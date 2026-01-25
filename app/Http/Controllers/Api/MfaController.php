@@ -177,13 +177,13 @@ class MfaController extends Controller
                 'avatar' => $user->avatar,
                 'language' => $user->language,
             ],
-            'groups' => $user->accessibleGroups()->get()->map(function ($group) use ($user) {
-                return [
-                    'id' => $group->id,
-                    'name' => $group->name,
-                    'role' => $group->getUserRole($user),
-                ];
-            }),
+            'groups' => $user->accessibleGroups(),
+            'permissions' => [
+                'admin_groups' => $user->adminGroupIds(),
+                'manager_groups' => $user->managerGroupIds(),
+                'member_groups' => $user->memberGroupIds(),
+                'owner_groups' => $user->ownerGroupIds(),
+            ],
         ]);
     }
 

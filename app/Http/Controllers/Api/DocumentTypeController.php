@@ -62,7 +62,7 @@ class DocumentTypeController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $documentType = DocumentType::whereHas('obligation', fn($q) => $q->whereIn('group_id', $groupIds))
             ->findOrFail($id);
@@ -87,7 +87,7 @@ class DocumentTypeController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $documentType = DocumentType::whereHas('obligation', fn($q) => $q->whereIn('group_id', $groupIds))
             ->findOrFail($id);

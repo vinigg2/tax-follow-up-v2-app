@@ -122,7 +122,8 @@ class TaskController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can create tasks
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $request->validate([
             'title' => 'required|string|max:30',
@@ -178,21 +179,30 @@ class TaskController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can update tasks
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $task = Task::whereIn('group_id', $groupIds)
             ->where('deleted', false)
             ->findOrFail($id);
 
         $request->validate([
-            'title' => 'sometimes|string|max:30',
-            'description' => 'sometimes|nullable|string|max:250',
+            'title' => 'sometimes|string|max:255',
+            'description' => 'sometimes|nullable|string|max:1000',
             'deadline' => 'sometimes|date',
             'responsible' => 'sometimes|nullable|exists:users,id',
+            'responsible_user_id' => 'sometimes|nullable|exists:users,id',
+            'company_id' => 'sometimes|exists:companies,id',
+            'competency' => 'sometimes|nullable|string|max:50',
             'status' => 'sometimes|string|in:new,pending,late,finished',
         ]);
 
-        $oldValues = $task->only(['title', 'description', 'deadline', 'responsible', 'status']);
+        // Map responsible_user_id to responsible for consistency
+        if ($request->has('responsible_user_id') && !$request->has('responsible')) {
+            $request->merge(['responsible' => $request->responsible_user_id]);
+        }
+
+        $oldValues = $task->only(['title', 'description', 'deadline', 'responsible', 'status', 'company_id', 'competency']);
         $user = $request->user();
 
         // Handle status change (from Kanban drag & drop)
@@ -202,6 +212,24 @@ class TaskController extends Controller
                 return response()->json([
                     'message' => 'Tarefas retificadas nao podem ter o status alterado',
                 ], 422);
+            }
+
+            // Prevent finishing task if obligatory documents are not complete
+            if ($request->status === 'finished') {
+                $obligatoryDocs = $task->documents()->where('is_obligatory', true)->get();
+                $pendingDocs = $obligatoryDocs->filter(fn($doc) => $doc->status !== 'finished');
+
+                if ($pendingDocs->isNotEmpty()) {
+                    $pendingNames = $pendingDocs->pluck('name')->join(', ');
+                    return response()->json([
+                        'message' => 'Nao e possivel concluir a tarefa. Documentos obrigatorios pendentes: ' . $pendingNames,
+                        'pending_documents' => $pendingDocs->map(fn($doc) => [
+                            'id' => $doc->id,
+                            'name' => $doc->name,
+                            'status' => $doc->status,
+                        ])->values(),
+                    ], 422);
+                }
             }
 
             $statusLabels = [
@@ -237,7 +265,7 @@ class TaskController extends Controller
             ]);
         }
 
-        $task->update($request->only(['title', 'description', 'deadline', 'responsible']));
+        $task->update($request->only(['title', 'description', 'deadline', 'responsible', 'company_id', 'competency']));
 
         // Create timeline entries for other changes
         if ($request->filled('title') && $oldValues['title'] !== $request->title) {
@@ -252,9 +280,20 @@ class TaskController extends Controller
             Timeline::createEntry('changed_deadline', $task->id, $user->id, "Prazo alterado para {$request->deadline}");
         }
 
-        if ($request->filled('responsible') && $oldValues['responsible'] !== $request->responsible) {
-            $newResponsible = $task->fresh()->responsibleUser;
-            Timeline::createEntry('changed_responsible', $task->id, $user->id, "Responsavel alterado para {$newResponsible?->name}");
+        if ($request->has('responsible') && $oldValues['responsible'] != $request->responsible) {
+            $task->refresh();
+            $newResponsible = $task->responsibleUser;
+            $description = $newResponsible ? "Responsavel alterado para {$newResponsible->name}" : "Responsavel removido";
+            Timeline::createEntry('changed_responsible', $task->id, $user->id, $description);
+        }
+
+        if ($request->filled('company_id') && $oldValues['company_id'] != $request->company_id) {
+            $task->refresh();
+            Timeline::createEntry('changed_company', $task->id, $user->id, "Empresa alterada para {$task->company?->name}");
+        }
+
+        if ($request->has('competency') && $oldValues['competency'] !== $request->competency) {
+            Timeline::createEntry('changed_competency', $task->id, $user->id, "Competencia alterada para {$request->competency}");
         }
 
         // Recalculate status only if not explicitly set
@@ -273,7 +312,8 @@ class TaskController extends Controller
      */
     public function correct(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can correct tasks
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $task = Task::with(['documents.documentType', 'obligation'])
             ->whereIn('group_id', $groupIds)
@@ -351,7 +391,8 @@ class TaskController extends Controller
      */
     public function archive(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can archive tasks
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $task = Task::whereIn('group_id', $groupIds)
             ->where('deleted', false)
@@ -372,7 +413,8 @@ class TaskController extends Controller
      */
     public function unarchive(Request $request, int $id): JsonResponse
     {
-        $groupIds = $request->input('admin_group_ids', []);
+        // Managers and admins can unarchive tasks
+        $groupIds = $request->input('content_manager_group_ids', []);
 
         $task = Task::whereIn('group_id', $groupIds)
             ->where('deleted', false)

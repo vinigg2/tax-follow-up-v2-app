@@ -53,7 +53,7 @@ class GroupTest extends TestCase
     {
         // Create a second group to ensure we have one accessible
         $secondGroup = Group::factory()->create(['owner_id' => $this->user->id]);
-        $this->user->groups()->attach($secondGroup->id, ['is_admin' => true]);
+        $this->user->groups()->attach($secondGroup->id, ['role' => 'admin']);
 
         // Delete the original group
         $this->group->update(['deleted' => true]);
@@ -114,7 +114,7 @@ class GroupTest extends TestCase
     {
         // Create a second group so user still has access
         $secondGroup = Group::factory()->create(['owner_id' => $this->user->id]);
-        $this->user->groups()->attach($secondGroup->id, ['is_admin' => true]);
+        $this->user->groups()->attach($secondGroup->id, ['role' => 'admin']);
 
         // Delete the original group
         $deletedGroupId = $this->group->id;
@@ -161,8 +161,8 @@ class GroupTest extends TestCase
 
         $newGroup = Group::where('name', 'Grupo Admin Test')->first();
         $this->assertEquals(
-            1,
-            $newGroup->users()->where('user_id', $this->user->id)->first()->pivot->is_admin
+            'admin',
+            $newGroup->users()->where('user_id', $this->user->id)->first()->pivot->role
         );
     }
 
@@ -211,7 +211,7 @@ class GroupTest extends TestCase
     public function test_non_owner_cannot_update_group(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser($member);
 
@@ -243,7 +243,7 @@ class GroupTest extends TestCase
     public function test_non_owner_cannot_delete_group(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => true]);
+        $this->group->users()->attach($member->id, ['role' => 'admin']);
 
         $this->actingAsUser($member);
 
@@ -261,8 +261,8 @@ class GroupTest extends TestCase
         $member1 = User::factory()->create(['name' => 'Member 1']);
         $member2 = User::factory()->create(['name' => 'Member 2']);
 
-        $this->group->users()->attach($member1->id, ['is_admin' => false]);
-        $this->group->users()->attach($member2->id, ['is_admin' => true]);
+        $this->group->users()->attach($member1->id, ['role' => 'member']);
+        $this->group->users()->attach($member2->id, ['role' => 'admin']);
 
         $this->actingAsUser();
 
@@ -271,7 +271,7 @@ class GroupTest extends TestCase
         $response->assertOk()
             ->assertJsonStructure([
                 'users' => [
-                    '*' => ['id', 'name', 'email', 'avatar', 'is_admin'],
+                    '*' => ['id', 'name', 'email', 'avatar', 'role'],
                 ],
             ]);
 
@@ -295,7 +295,7 @@ class GroupTest extends TestCase
     public function test_admin_can_remove_user_from_group(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -333,8 +333,8 @@ class GroupTest extends TestCase
         $member = User::factory()->create();
         $targetUser = User::factory()->create();
 
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
-        $this->group->users()->attach($targetUser->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
+        $this->group->users()->attach($targetUser->id, ['role' => 'member']);
 
         $this->actingAsUser($member);
 
@@ -352,13 +352,13 @@ class GroupTest extends TestCase
     public function test_admin_can_update_user_role(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
         $response = $this->putJson(
             "/api/groups/{$this->group->id}/users/{$member->id}/role",
-            ['is_admin' => true],
+            ['role' => 'admin'],
             $this->withTenantHeaders()
         );
 
@@ -366,8 +366,8 @@ class GroupTest extends TestCase
             ->assertJsonPath('message', 'Funcao do usuario atualizada com sucesso!');
 
         $this->assertEquals(
-            1,
-            $this->group->users()->where('user_id', $member->id)->first()->pivot->is_admin
+            'admin',
+            $this->group->users()->where('user_id', $member->id)->first()->pivot->role
         );
     }
 
@@ -377,7 +377,7 @@ class GroupTest extends TestCase
 
         $response = $this->putJson(
             "/api/groups/{$this->group->id}/users/{$this->user->id}/role",
-            ['is_admin' => false],
+            ['role' => 'member'],
             $this->withTenantHeaders()
         );
 
@@ -385,10 +385,10 @@ class GroupTest extends TestCase
             ->assertJsonPath('message', 'Nao e possivel alterar a funcao do proprietario');
     }
 
-    public function test_update_role_requires_is_admin_field(): void
+    public function test_update_role_requires_role_field(): void
     {
         $member = User::factory()->create();
-        $this->group->users()->attach($member->id, ['is_admin' => false]);
+        $this->group->users()->attach($member->id, ['role' => 'member']);
 
         $this->actingAsUser();
 
@@ -399,27 +399,27 @@ class GroupTest extends TestCase
         );
 
         $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['is_admin']);
+            ->assertJsonValidationErrors(['role']);
     }
 
     public function test_can_demote_admin_to_member(): void
     {
         $admin = User::factory()->create();
-        $this->group->users()->attach($admin->id, ['is_admin' => true]);
+        $this->group->users()->attach($admin->id, ['role' => 'admin']);
 
         $this->actingAsUser();
 
         $response = $this->putJson(
             "/api/groups/{$this->group->id}/users/{$admin->id}/role",
-            ['is_admin' => false],
+            ['role' => 'member'],
             $this->withTenantHeaders()
         );
 
         $response->assertOk();
 
         $this->assertEquals(
-            0,
-            $this->group->users()->where('user_id', $admin->id)->first()->pivot->is_admin
+            'member',
+            $this->group->users()->where('user_id', $admin->id)->first()->pivot->role
         );
     }
 }

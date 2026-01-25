@@ -13,18 +13,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useCreateTask } from '@/hooks/useTasks';
+import { useCreateTask, useUpdateTask } from '@/hooks/useTasks';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useObligations } from '@/hooks/useObligations';
 import { useUsers } from '@/hooks/useUsers';
-import { TaskCreateData } from '@/api/tasks';
+import { Task, TaskCreateData } from '@/api/tasks';
 
 interface TaskFormDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  task?: Task | null;
 }
 
-export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
+export function TaskFormDrawer({ open, onOpenChange, task }: TaskFormDrawerProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [companyId, setCompanyId] = useState('');
@@ -33,7 +34,9 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
   const [deadline, setDeadline] = useState('');
   const [competency, setCompetency] = useState('');
 
+  const isEditMode = !!task;
   const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
   const { data: companiesData } = useCompanies();
   const { data: obligationsData } = useObligations();
   const { data: usersData } = useUsers();
@@ -42,18 +45,32 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
   const obligations = obligationsData?.obligations || [];
   const users = usersData?.users || [];
 
-  // Reset form when drawer opens
+  // Initialize form when drawer opens
   useEffect(() => {
     if (open) {
-      setTitle('');
-      setDescription('');
-      setCompanyId('');
-      setObligationId('');
-      setResponsibleUserId('');
-      setDeadline('');
-      setCompetency('');
+      if (task) {
+        // Edit mode: pre-fill form with task data
+        setTitle(task.task_hierarchy_title || task.title || '');
+        setDescription(task.description || '');
+        setCompanyId(task.company?.id?.toString() || '');
+        setResponsibleUserId(task.responsible_user?.id?.toString() || '');
+        // Convert ISO date to YYYY-MM-DD for input type="date"
+        const deadlineDate = task.deadline ? task.deadline.split('T')[0] : '';
+        setDeadline(deadlineDate);
+        setCompetency(task.competency || '');
+        setObligationId('');
+      } else {
+        // Create mode: reset form
+        setTitle('');
+        setDescription('');
+        setCompanyId('');
+        setObligationId('');
+        setResponsibleUserId('');
+        setDeadline('');
+        setCompetency('');
+      }
     }
-  }, [open]);
+  }, [open, task]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,43 +80,57 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
       return;
     }
 
-    // Get group_id from selected company
-    const selectedCompany = companies.find(c => c.id === Number(companyId));
-    if (!selectedCompany?.group_id) {
-      toast.error('Empresa sem grupo associado');
-      return;
-    }
-
-    const payload: TaskCreateData = {
-      title: title.trim(),
-      description: description.trim() || undefined,
-      company_id: Number(companyId),
-      group_id: selectedCompany.group_id,
-      obligation_id: obligationId ? Number(obligationId) : undefined,
-      responsible_user_id: responsibleUserId ? Number(responsibleUserId) : undefined,
-      deadline,
-      competency: competency.trim() || undefined,
-    };
-
     try {
-      await createTask.mutateAsync(payload);
-      toast.success('Tarefa criada com sucesso!');
+      if (isEditMode && task) {
+        // Edit mode
+        const updateData = {
+          title: title.trim(),
+          description: description.trim() || null,
+          company_id: Number(companyId),
+          responsible_user_id: responsibleUserId ? Number(responsibleUserId) : null,
+          deadline,
+          competency: competency.trim() || null,
+        };
+        await updateTask.mutateAsync({ id: task.id, data: updateData });
+        toast.success('Tarefa atualizada com sucesso!');
+      } else {
+        // Create mode
+        const selectedCompany = companies.find(c => c.id === Number(companyId));
+        if (!selectedCompany?.group_id) {
+          toast.error('Empresa sem grupo associado');
+          return;
+        }
+
+        const payload: TaskCreateData = {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          company_id: Number(companyId),
+          group_id: selectedCompany.group_id,
+          obligation_id: obligationId ? Number(obligationId) : undefined,
+          responsible_user_id: responsibleUserId ? Number(responsibleUserId) : undefined,
+          deadline,
+          competency: competency.trim() || undefined,
+        };
+        await createTask.mutateAsync(payload);
+        toast.success('Tarefa criada com sucesso!');
+      }
       onOpenChange(false);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Erro ao criar tarefa');
+      toast.error(err.response?.data?.message || (isEditMode ? 'Erro ao atualizar tarefa' : 'Erro ao criar tarefa'));
     }
   };
 
+  const isPending = createTask.isPending || updateTask.isPending;
   const canSubmit = title.trim() && companyId && deadline;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Nova Tarefa</SheetTitle>
+          <SheetTitle>{isEditMode ? 'Editar Tarefa' : 'Nova Tarefa'}</SheetTitle>
           <SheetDescription>
-            Crie uma nova tarefa manualmente
+            {isEditMode ? 'Atualize os dados da tarefa' : 'Crie uma nova tarefa manualmente'}
           </SheetDescription>
         </SheetHeader>
 
@@ -135,26 +166,28 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
               </select>
             </div>
 
-            {/* Modelo de Obrigacao */}
-            <div className="space-y-2">
-              <Label htmlFor="obligation_id">Modelo de Obrigacao</Label>
-              <select
-                id="obligation_id"
-                value={obligationId}
-                onChange={(e) => setObligationId(e.target.value)}
-                className="input w-full"
-              >
-                <option value="">Nenhum (tarefa avulsa)</option>
-                {obligations.map((obligation) => (
-                  <option key={obligation.id} value={obligation.id}>
-                    {obligation.title}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500">
-                Opcional. Vincule a um modelo para herdar configuracoes.
-              </p>
-            </div>
+            {/* Modelo de Obrigacao - only show in create mode */}
+            {!isEditMode && (
+              <div className="space-y-2">
+                <Label htmlFor="obligation_id">Modelo de Obrigacao</Label>
+                <select
+                  id="obligation_id"
+                  value={obligationId}
+                  onChange={(e) => setObligationId(e.target.value)}
+                  className="input w-full"
+                >
+                  <option value="">Nenhum (tarefa avulsa)</option>
+                  {obligations.map((obligation) => (
+                    <option key={obligation.id} value={obligation.id}>
+                      {obligation.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500">
+                  Opcional. Vincule a um modelo para herdar configuracoes.
+                </p>
+              </div>
+            )}
 
             {/* Responsavel */}
             <div className="space-y-2">
@@ -219,17 +252,17 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={createTask.isPending}
+              disabled={isPending}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={createTask.isPending || !canSubmit}
+              disabled={isPending || !canSubmit}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {createTask.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Criar Tarefa
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isEditMode ? 'Salvar Alteracoes' : 'Criar Tarefa'}
             </Button>
           </SheetFooter>
         </form>

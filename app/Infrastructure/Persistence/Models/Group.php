@@ -40,18 +40,23 @@ class Group extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_groups')
-            ->withPivot('is_admin')
+            ->withPivot('role')
             ->withTimestamps();
     }
 
     public function admins(): BelongsToMany
     {
-        return $this->users()->wherePivot('is_admin', true);
+        return $this->users()->wherePivot('role', 'admin');
+    }
+
+    public function managers(): BelongsToMany
+    {
+        return $this->users()->wherePivot('role', 'manager');
     }
 
     public function members(): BelongsToMany
     {
-        return $this->users()->wherePivot('is_admin', false);
+        return $this->users()->wherePivot('role', 'member');
     }
 
     public function companies(): HasMany
@@ -111,10 +116,16 @@ class Group extends Model
     }
 
     // Helper methods
-    public function addUser(User $user, bool $isAdmin = false): void
+
+    /**
+     * Add a user to the group with a specific role
+     * @param User $user
+     * @param string $role 'admin', 'manager', or 'member'
+     */
+    public function addUser(User $user, string $role = 'member'): void
     {
         $this->users()->syncWithoutDetaching([
-            $user->id => ['is_admin' => $isAdmin]
+            $user->id => ['role' => $role]
         ]);
     }
 
@@ -123,14 +134,24 @@ class Group extends Model
         $this->users()->detach($user->id);
     }
 
-    public function setUserAsAdmin(User $user): void
+    public function setUserRole(User $user, string $role): void
     {
-        $this->users()->updateExistingPivot($user->id, ['is_admin' => true]);
+        $this->users()->updateExistingPivot($user->id, ['role' => $role]);
     }
 
-    public function removeUserAdmin(User $user): void
+    public function setUserAsAdmin(User $user): void
     {
-        $this->users()->updateExistingPivot($user->id, ['is_admin' => false]);
+        $this->setUserRole($user, 'admin');
+    }
+
+    public function setUserAsManager(User $user): void
+    {
+        $this->setUserRole($user, 'manager');
+    }
+
+    public function setUserAsMember(User $user): void
+    {
+        $this->setUserRole($user, 'member');
     }
 
     public function getUserRole(User $user): ?string
@@ -145,6 +166,6 @@ class Group extends Model
             return null;
         }
 
-        return $pivot->is_admin ? 'admin' : 'member';
+        return $pivot->role;
     }
 }

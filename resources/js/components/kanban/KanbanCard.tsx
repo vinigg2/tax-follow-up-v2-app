@@ -88,11 +88,11 @@ export default function KanbanCard({
       {/* Card Header */}
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Drag Handle */}
+          {/* Drag Handle - always visible on mobile, hover on desktop */}
           <button
             {...attributes}
             {...listeners}
-            className="mt-0.5 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing rounded hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="mt-0.5 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing rounded hover:bg-gray-100 dark:hover:bg-gray-700 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-none"
           >
             <GripVertical className="w-4 h-4" />
           </button>

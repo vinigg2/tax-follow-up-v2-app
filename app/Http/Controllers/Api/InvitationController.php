@@ -92,9 +92,10 @@ class InvitationController extends Controller
             ], 403);
         }
 
-        // Add user to group
+        // Add user to group with role based on invitation type
+        $role = $invitation->is_admin ? 'admin' : 'member';
         $invitation->group->users()->attach($user->id, [
-            'is_admin' => $invitation->is_admin,
+            'role' => $role,
         ]);
 
         $invitation->update(['status' => 'accepted']);

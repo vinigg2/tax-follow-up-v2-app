@@ -1,4 +1,5 @@
 import api from './axios';
+import { Document } from './documents';
 
 export interface Task {
   id: number | string;
@@ -20,9 +21,10 @@ export interface Task {
     id: number;
     name: string;
   };
-  documents?: TaskDocument[];
+  documents?: Document[];
 }
 
+// Legacy interface for backwards compatibility
 export interface TaskDocument {
   id: number;
   name: string;
