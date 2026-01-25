@@ -13,17 +13,88 @@ jobs:
     steps:
       - name: Deploy to DreamHost via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
         with:
           host: iad1-shared-b7-10.dreamhost.com
           username: vinigg2
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          envs: APP_KEY,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET
           script: |
             cd /home/vinigg2/demo.taxfollowup.com.br
 
             # Pull latest changes
             git fetch origin main
             git reset --hard origin/main
+
+            # Create .env file
+            cat > .env << 'ENVFILE'
+            APP_NAME="Tax Follow Up"
+            APP_ENV=staging
+            APP_KEY=$APP_KEY
+            APP_DEBUG=false
+            APP_TIMEZONE=America/Sao_Paulo
+            APP_URL=https://demo.taxfollowup.com.br
+            APP_LOCALE=pt_BR
+            APP_FALLBACK_LOCALE=en
+            APP_FAKER_LOCALE=pt_BR
+
+            FRONTEND_URL=https://demo.taxfollowup.com.br
+
+            LOG_CHANNEL=stack
+            LOG_STACK=single
+            LOG_DEPRECATIONS_CHANNEL=null
+            LOG_LEVEL=error
+
+            DB_CONNECTION=mysql
+            DB_HOST=$DB_HOST
+            DB_PORT=3306
+            DB_DATABASE=$DB_DATABASE
+            DB_USERNAME=$DB_USERNAME
+            DB_PASSWORD=$DB_PASSWORD
+
+            SESSION_DRIVER=file
+            SESSION_LIFETIME=120
+            SESSION_ENCRYPT=false
+            SESSION_PATH=/
+            SESSION_DOMAIN=null
+
+            BROADCAST_CONNECTION=log
+            FILESYSTEM_DISK=local
+            QUEUE_CONNECTION=sync
+
+            CACHE_STORE=file
+            CACHE_PREFIX=tfu_
+
+            MAIL_MAILER=smtp
+            MAIL_HOST=$MAIL_HOST
+            MAIL_PORT=$MAIL_PORT
+            MAIL_USERNAME=$MAIL_USERNAME
+            MAIL_PASSWORD=$MAIL_PASSWORD
+            MAIL_ENCRYPTION=tls
+            MAIL_FROM_ADDRESS="noreply@taxfollowup.com.br"
+            MAIL_FROM_NAME="Tax Follow Up"
+
+            AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            AWS_DEFAULT_REGION=us-east-2
+            AWS_BUCKET=$AWS_BUCKET
+            AWS_USE_PATH_STYLE_ENDPOINT=false
+
+            SANCTUM_STATEFUL_DOMAINS=demo.taxfollowup.com.br
+            ENVFILE
 
             # Install PHP dependencies
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
@@ -42,6 +113,5 @@ jobs:
 
             # Clear and rebuild caches
             php artisan cache:clear
-            php artisan queue:restart
 
             echo "Deploy completed successfully!"
