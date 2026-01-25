@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useObligations, useDeleteObligation, useGenerateTasks } from '@/hooks/useObligations';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { useObligations, useDeleteObligation } from '@/hooks/useObligations';
 import {
   Obligation,
   OBLIGATION_KINDS,
@@ -8,6 +10,7 @@ import {
   ObligationFrequency,
 } from '@/api/obligations';
 import { ObligationFormModal } from '@/components/obligations/ObligationFormModal';
+import { GenerateTasksModal } from '@/components/obligations/GenerateTasksModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,6 +54,7 @@ const FREQUENCY_COLORS: Record<ObligationFrequency, string> = {
 };
 
 export default function ObligationsIndex() {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [kindFilter, setKindFilter] = useState<ObligationKind | undefined>();
   const [frequencyFilter, setFrequencyFilter] = useState<ObligationFrequency | undefined>();
@@ -67,7 +71,6 @@ export default function ObligationsIndex() {
 
   const { data, isLoading, error } = useObligations({ kind: kindFilter, frequency: frequencyFilter });
   const deleteObligation = useDeleteObligation();
-  const generateTasks = useGenerateTasks();
 
   const obligations = data?.obligations || [];
 
@@ -94,19 +97,15 @@ export default function ObligationsIndex() {
     if (!obligationToDelete) return;
     try {
       await deleteObligation.mutateAsync(obligationToDelete.id);
+      toast.success(t('toast.obligationDeleted'));
       setObligationToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting obligation:', error);
-    }
-  };
-
-  const handleGenerateTasks = async () => {
-    if (!obligationToGenerate) return;
-    try {
-      await generateTasks.mutateAsync({ id: obligationToGenerate.id });
-      setObligationToGenerate(null);
-    } catch (error) {
-      console.error('Error generating tasks:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(t('toast.errorDeletingObligation'));
+      }
     }
   };
 
@@ -388,31 +387,12 @@ export default function ObligationsIndex() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Generate Tasks Confirmation */}
-      <AlertDialog open={!!obligationToGenerate} onOpenChange={() => setObligationToGenerate(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Gerar Tarefas</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deseja gerar tarefas para a obrigacao{' '}
-              <span className="font-semibold">{obligationToGenerate?.title}</span>? As tarefas
-              serao criadas para todas as empresas vinculadas.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleGenerateTasks}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {generateTasks.isPending && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              )}
-              Gerar Tarefas
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Generate Tasks Modal */}
+      <GenerateTasksModal
+        open={!!obligationToGenerate}
+        onOpenChange={(open) => !open && setObligationToGenerate(null)}
+        obligation={obligationToGenerate}
+      />
     </div>
   );
 }

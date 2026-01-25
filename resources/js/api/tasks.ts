@@ -59,6 +59,7 @@ export interface TaskCreateData {
   title: string;
   description?: string;
   company_id: number;
+  group_id: number;
   obligation_id?: number;
   responsible_user_id?: number;
   deadline: string;

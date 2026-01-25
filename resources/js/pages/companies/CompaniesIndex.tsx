@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useCompanies, useDeleteCompany } from '@/hooks/useCompanies';
-import { useTeams } from '@/hooks/useTeams';
+import { useAuth } from '@/hooks/useAuth';
 import { Company } from '@/api/companies';
 import { CompanyFormDrawer } from '@/components/companies/CompanyFormDrawer';
 import { Button } from '@/components/ui/button';
@@ -39,8 +40,9 @@ import {
 
 export default function CompaniesIndex() {
   const { t } = useTranslation();
+  const { groups } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [teamFilter, setTeamFilter] = useState<number | undefined>();
+  const [groupFilter, setGroupFilter] = useState<number | undefined>();
 
   // Drawer states
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
@@ -49,12 +51,10 @@ export default function CompaniesIndex() {
   // Delete confirmation
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
 
-  const { data, isLoading, error } = useCompanies({ team_id: teamFilter });
-  const { data: teamsData } = useTeams();
+  const { data, isLoading, error } = useCompanies({ group_id: groupFilter });
   const deleteCompany = useDeleteCompany();
 
   const companies = data?.companies || [];
-  const teams = teamsData?.teams || [];
 
   const filteredCompanies = companies.filter(
     (company) =>
@@ -76,9 +76,15 @@ export default function CompaniesIndex() {
     if (!companyToDelete) return;
     try {
       await deleteCompany.mutateAsync(companyToDelete.id);
+      toast.success(t('toast.companyDeleted'));
       setCompanyToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting company:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(t('toast.errorDeletingCompany'));
+      }
     }
   };
 
@@ -123,34 +129,36 @@ export default function CompaniesIndex() {
         </div>
       </div>
 
-      {/* Team Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <button
-          onClick={() => setTeamFilter(undefined)}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
-            !teamFilter
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          Todas
-        </button>
-        {teams.map((team) => (
+      {/* Group Filter */}
+      {groups.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
           <button
-            key={team.id}
-            onClick={() => setTeamFilter(team.id)}
+            onClick={() => setGroupFilter(undefined)}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
-              teamFilter === team.id
+              !groupFilter
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'
             }`}
           >
-            <Users className="w-4 h-4" />
-            {team.name}
+            <Building2 className="w-4 h-4" />
+            {t('common.all')}
           </button>
-        ))}
-      </div>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              onClick={() => setGroupFilter(group.id)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                groupFilter === group.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              {group.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       {error ? (
@@ -200,10 +208,10 @@ export default function CompaniesIndex() {
             <table className="table">
               <thead className="table-header">
                 <tr>
-                  <th>Empresa</th>
-                  <th>CNPJ</th>
-                  <th>Equipe</th>
-                  <th>Tarefas</th>
+                  <th>{t('companies.title')}</th>
+                  <th>{t('companies.cnpj')}</th>
+                  <th>{t('nav.teams')}</th>
+                  <th>{t('nav.tasks')}</th>
                   <th className="w-12"></th>
                 </tr>
               </thead>
@@ -219,9 +227,9 @@ export default function CompaniesIndex() {
                           <p className="font-medium text-gray-900 dark:text-white">
                             {company.name}
                           </p>
-                          {company.email && (
+                          {company.country && (
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {company.email}
+                              {company.country}
                             </p>
                           )}
                         </div>
@@ -233,13 +241,13 @@ export default function CompaniesIndex() {
                       </p>
                     </td>
                     <td>
-                      {company.team ? (
+                      {company.group ? (
                         <Badge variant="secondary">
                           <Users className="w-3 h-3 mr-1" />
-                          {company.team.name}
+                          {company.group.name}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400 text-sm">Sem equipe</span>
+                        <span className="text-gray-400 text-sm">-</span>
                       )}
                     </td>
                     <td>

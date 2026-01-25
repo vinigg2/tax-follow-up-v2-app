@@ -62,11 +62,15 @@ export function TeamCompaniesDrawer({ open, onOpenChange, team }: TeamCompaniesD
       company.cnpj?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredAvailableCompanies = availableCompanies.filter(
-    (company) =>
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.cnpj?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter out companies that are already linked to this team
+  const linkedCompanyIds = new Set(companies.map((c) => c.id));
+  const filteredAvailableCompanies = availableCompanies
+    .filter((company) => !linkedCompanyIds.has(company.id))
+    .filter(
+      (company) =>
+        company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.cnpj?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const handleLinkCompany = async (companyId: number) => {
     if (!team) return;
@@ -237,14 +241,6 @@ export function TeamCompaniesDrawer({ open, onOpenChange, team }: TeamCompaniesD
                             )}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                          onClick={() => setCompanyToUnlink(company)}
-                        >
-                          <Unlink className="w-4 h-4" />
-                        </Button>
                       </div>
                     ))
                   )}
@@ -255,8 +251,8 @@ export function TeamCompaniesDrawer({ open, onOpenChange, team }: TeamCompaniesD
         </SheetContent>
       </Sheet>
 
-      {/* Unlink Company Confirmation */}
-      <AlertDialog open={!!companyToUnlink} onOpenChange={() => setCompanyToUnlink(null)}>
+      {/* Unlink Company Confirmation - Removed: companies must belong to a group */}
+      <AlertDialog open={false} onOpenChange={() => setCompanyToUnlink(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desvincular Empresa</AlertDialogTitle>

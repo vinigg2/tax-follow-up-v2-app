@@ -70,7 +70,18 @@
         "quarterly": "Trimestral",
         "annual": "Anual",
         "generateTasks": "Gerar Tarefas",
-        "documentTypes": "Tipos de Documentos"
+        "documentTypes": "Tipos de Documentos",
+        "selectCompaniesAndPeriod": "Selecione as empresas e o periodo para gerar tarefas",
+        "period": "Periodo",
+        "startDate": "Data Inicial",
+        "endDate": "Data Final",
+        "companies": "Empresas",
+        "competenciesCount": "{{count}} competencia(s) serao geradas",
+        "selectedCompanies": "{{count}} empresa(s) selecionada(s)",
+        "estimatedTasks": "Serao geradas aproximadamente {{count}} tarefa(s)",
+        "selectAtLeastOneCompany": "Selecione pelo menos uma empresa",
+        "invalidDateRange": "Selecione um periodo valido",
+        "noCompaniesAvailable": "Nenhuma empresa disponivel"
     },
     "companies": {
         "title": "Empresas",
@@ -101,5 +112,31 @@
         "tasksOverview": "Visao Geral das Tarefas",
         "delayedTasks": "Tarefas Atrasadas",
         "recentDeliveries": "Entregas Recentes"
+    },
+    "toast": {
+        "obligationCreated": "Obrigacao criada com sucesso!",
+        "obligationUpdated": "Obrigacao atualizada com sucesso!",
+        "obligationDeleted": "Obrigacao excluida com sucesso!",
+        "errorSavingObligation": "Erro ao salvar obrigacao",
+        "errorDeletingObligation": "Erro ao excluir obrigacao",
+        "tasksGenerated": "{{count}} tarefa(s) gerada(s) com sucesso!",
+        "errorGeneratingTasks": "Erro ao gerar tarefas",
+        "taskCreated": "Tarefa criada com sucesso!",
+        "taskUpdated": "Tarefa atualizada com sucesso!",
+        "errorSavingTask": "Erro ao salvar tarefa",
+        "companyCreated": "Empresa criada com sucesso!",
+        "companyUpdated": "Empresa atualizada com sucesso!",
+        "companyDeleted": "Empresa excluida com sucesso!",
+        "errorSavingCompany": "Erro ao salvar empresa",
+        "errorDeletingCompany": "Erro ao excluir empresa",
+        "teamCreated": "Equipe criada com sucesso!",
+        "teamUpdated": "Equipe atualizada com sucesso!",
+        "errorSavingTeam": "Erro ao salvar equipe",
+        "memberAdded": "Membro adicionado com sucesso!",
+        "memberRemoved": "Membro removido com sucesso!",
+        "validationError": "Erro de validacao",
+        "genericError": "Ocorreu um erro. Tente novamente.",
+        "success": "Sucesso!",
+        "error": "Erro!"
     }
 }

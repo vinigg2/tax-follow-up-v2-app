@@ -7,6 +7,8 @@ import {
   TeamStatusResponse,
   CompanyStatusResponse,
   PerformanceData,
+  ChartDataResponse,
+  RecentActivitiesResponse,
 } from '@/api/dashboard';
 
 export function useDashboardOverview() {
@@ -54,5 +56,21 @@ export function useDashboardPerformance(period: number = 30) {
     queryKey: ['dashboard', 'performance', period],
     queryFn: () => dashboardApi.getPerformance(period),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDashboardChartData(type: 'monthly' | 'quarterly' | 'annually' = 'monthly') {
+  return useQuery<ChartDataResponse>({
+    queryKey: ['dashboard', 'chart-data', type],
+    queryFn: () => dashboardApi.getChartData(type),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDashboardRecentActivities(limit: number = 10) {
+  return useQuery<RecentActivitiesResponse>({
+    queryKey: ['dashboard', 'recent-activities', limit],
+    queryFn: () => dashboardApi.getRecentActivities(limit),
+    staleTime: 2 * 60 * 1000,
   });
 }

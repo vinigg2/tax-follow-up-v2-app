@@ -11,6 +11,7 @@ import {
   UserPlus,
   LucideIcon,
 } from 'lucide-react';
+import { useDashboardRecentActivities } from '@/hooks/useDashboard';
 
 type ActivityType =
   | 'task_created'
@@ -80,53 +81,14 @@ const ACTIVITY_TYPES: Record<ActivityType, ActivityConfig> = {
   },
 };
 
-const sampleActivities: Activity[] = [
-  {
-    id: 1,
-    type: 'task_completed',
-    title: 'DCTF Mensal - Empresa ABC',
-    user: 'João Silva',
-    date: '2024-01-15 14:30',
-    company: 'Empresa ABC',
-  },
-  {
-    id: 2,
-    type: 'document_uploaded',
-    title: 'Guia DARF anexada',
-    user: 'Maria Santos',
-    date: '2024-01-15 13:45',
-    company: 'Tech Corp',
-  },
-  {
-    id: 3,
-    type: 'task_delayed',
-    title: 'EFD-Contribuições atrasada',
-    user: 'Sistema',
-    date: '2024-01-15 12:00',
-    company: 'Empresa XYZ',
-  },
-  {
-    id: 4,
-    type: 'task_created',
-    title: 'Nova obrigação gerada',
-    user: 'Sistema',
-    date: '2024-01-15 10:30',
-    company: 'Alpha Ltda',
-  },
-  {
-    id: 5,
-    type: 'comment_added',
-    title: 'Comentário na tarefa SPED',
-    user: 'Carlos Mendes',
-    date: '2024-01-14 16:20',
-    company: 'Beta S.A.',
-  },
-];
-
 export default function LatestActivity({
-  activities = sampleActivities,
-  loading = false,
+  activities: externalActivities,
+  loading: externalLoading = false,
 }: LatestActivityProps) {
+  const { data: activitiesResponse, isLoading: activitiesLoading } = useDashboardRecentActivities(15);
+
+  const loading = externalLoading || activitiesLoading;
+  const activities = externalActivities || (activitiesResponse?.activities as Activity[]) || [];
   if (loading) {
     return (
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">

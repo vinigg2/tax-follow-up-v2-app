@@ -118,6 +118,62 @@ class TaskController extends Controller
     }
 
     /**
+     * Create a new task
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $groupIds = $request->input('admin_group_ids', []);
+
+        $request->validate([
+            'title' => 'required|string|max:30',
+            'description' => 'nullable|string|max:250',
+            'deadline' => 'required|date',
+            'company_id' => 'required|exists:companies,id',
+            'group_id' => 'required|integer|in:' . implode(',', $groupIds),
+            'responsible_user_id' => 'nullable|exists:users,id',
+            'obligation_id' => 'nullable|exists:obligations,id',
+            'competency' => 'nullable|string|max:10',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $task = Task::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'deadline' => $request->deadline,
+                'company_id' => $request->company_id,
+                'group_id' => $request->group_id,
+                'responsible' => $request->responsible_user_id,
+                'cause_id' => $request->obligation_id,
+                'competency' => $request->competency,
+                'status' => 'new',
+                'is_active' => true,
+                'percent' => 0,
+                'delayed_days' => 0,
+            ]);
+
+            // Create timeline entry
+            Timeline::createEntry(
+                'created_task',
+                $task->id,
+                $request->user()->id,
+                'Tarefa criada'
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'task' => $task->load(['company', 'responsibleUser']),
+                'message' => 'Tarefa criada com sucesso!',
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Update a task
      */
     public function update(Request $request, int $id): JsonResponse
@@ -133,15 +189,57 @@ class TaskController extends Controller
             'description' => 'sometimes|nullable|string|max:250',
             'deadline' => 'sometimes|date',
             'responsible' => 'sometimes|nullable|exists:users,id',
+            'status' => 'sometimes|string|in:new,pending,late,finished',
         ]);
 
-        $oldValues = $task->only(['title', 'description', 'deadline', 'responsible']);
+        $oldValues = $task->only(['title', 'description', 'deadline', 'responsible', 'status']);
+        $user = $request->user();
+
+        // Handle status change (from Kanban drag & drop)
+        if ($request->filled('status') && $oldValues['status'] !== $request->status) {
+            // Prevent changing rectified tasks
+            if ($oldValues['status'] === 'rectified') {
+                return response()->json([
+                    'message' => 'Tarefas retificadas nao podem ter o status alterado',
+                ], 422);
+            }
+
+            $statusLabels = [
+                'new' => 'Nova',
+                'pending' => 'Pendente',
+                'late' => 'Atrasada',
+                'finished' => 'Finalizada',
+            ];
+
+            $task->update(['status' => $request->status]);
+
+            // If marked as finished, set conclusion date
+            if ($request->status === 'finished') {
+                $task->update([
+                    'conclusion_date' => now(),
+                    'percent' => 100,
+                ]);
+            }
+
+            $oldStatusLabel = $statusLabels[$oldValues['status']] ?? $oldValues['status'];
+            $newStatusLabel = $statusLabels[$request->status] ?? $request->status;
+
+            Timeline::createEntry(
+                'changed_status',
+                $task->id,
+                $user->id,
+                "Status alterado de '{$oldStatusLabel}' para '{$newStatusLabel}'"
+            );
+
+            return response()->json([
+                'task' => $task->fresh()->load(['company', 'responsibleUser', 'documents']),
+                'message' => 'Status atualizado com sucesso!',
+            ]);
+        }
 
         $task->update($request->only(['title', 'description', 'deadline', 'responsible']));
 
-        // Create timeline entries for changes
-        $user = $request->user();
-
+        // Create timeline entries for other changes
         if ($request->filled('title') && $oldValues['title'] !== $request->title) {
             Timeline::createEntry('changed_title', $task->id, $user->id, "Titulo alterado de '{$oldValues['title']}' para '{$request->title}'");
         }
@@ -159,8 +257,10 @@ class TaskController extends Controller
             Timeline::createEntry('changed_responsible', $task->id, $user->id, "Responsavel alterado para {$newResponsible?->name}");
         }
 
-        // Recalculate status
-        $this->updateTaskStatus($task);
+        // Recalculate status only if not explicitly set
+        if (!$request->filled('status')) {
+            $this->updateTaskStatus($task);
+        }
 
         return response()->json([
             'task' => $task->fresh()->load(['company', 'responsibleUser', 'documents']),
@@ -292,12 +392,26 @@ class TaskController extends Controller
 
     private function getCurrentIteration(array $groupIds, Request $request)
     {
-        return Task::with(['company', 'responsibleUser'])
+        $query = Task::with(['company', 'responsibleUser'])
             ->whereIn('group_id', $groupIds)
             ->where('deleted', false)
-            ->where('is_active', true)
-            ->whereNotIn('status', ['finished', 'rectified'])
-            ->orderBy('deadline', 'asc')
+            ->where('is_active', true);
+
+        // By default exclude completed tasks, unless show_completed is true
+        if (!$request->boolean('show_completed')) {
+            $query->whereNotIn('status', ['finished', 'rectified']);
+        } else {
+            // When showing completed, only show recently completed (last 30 days)
+            $query->where(function ($q) {
+                $q->whereNotIn('status', ['finished', 'rectified'])
+                    ->orWhere(function ($q2) {
+                        $q2->whereIn('status', ['finished', 'rectified'])
+                            ->where('updated_at', '>=', now()->subDays(30));
+                    });
+            });
+        }
+
+        return $query->orderBy('deadline', 'asc')
             ->limit(100)
             ->get();
     }

@@ -40,6 +40,7 @@ export interface ObligationResponse {
 }
 
 export interface ObligationFormData {
+  group_id: number;
   title: string;
   kind: ObligationKind;
   description?: string;

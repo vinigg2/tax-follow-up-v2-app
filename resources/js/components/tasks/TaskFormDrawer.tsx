@@ -63,10 +63,18 @@ export function TaskFormDrawer({ open, onOpenChange }: TaskFormDrawerProps) {
       return;
     }
 
+    // Get group_id from selected company
+    const selectedCompany = companies.find(c => c.id === Number(companyId));
+    if (!selectedCompany?.group_id) {
+      toast.error('Empresa sem grupo associado');
+      return;
+    }
+
     const payload: TaskCreateData = {
       title: title.trim(),
       description: description.trim() || undefined,
       company_id: Number(companyId),
+      group_id: selectedCompany.group_id,
       obligation_id: obligationId ? Number(obligationId) : undefined,
       responsible_user_id: responsibleUserId ? Number(responsibleUserId) : undefined,
       deadline,

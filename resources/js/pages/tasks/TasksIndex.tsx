@@ -89,9 +89,12 @@ export default function TasksIndex() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
 
-  const { data, isLoading, error } = useTasks(method);
+  // Pass show_completed: true for kanban view to show finished tasks
+  const { data, isLoading, error } = useTasks(method, {
+    show_completed: viewMode === 'kanban',
+  });
   const { data: teamsData } = useTeams();
-  const { data: companiesData } = useCompanies({ team_id: teamFilter });
+  const { data: companiesData } = useCompanies({ group_id: teamFilter });
 
   const tasks = (data?.tasks || []) as Task[];
   const teams = teamsData?.teams || [];

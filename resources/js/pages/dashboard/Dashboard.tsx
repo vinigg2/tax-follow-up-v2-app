@@ -42,7 +42,8 @@ export default function Dashboard() {
     }),
   );
 
-  const healthTrend = totalHealthScore >= 80 ? 'up' : 'down';
+  const newTasksCount = stats.by_status?.new || 0;
+  const pendingCount = stats.by_status?.pending || 0;
 
   return (
     <div className="container-fluid">
@@ -55,9 +56,9 @@ export default function Dashboard() {
               iconBg="bg-blue-100 dark:bg-blue-900/30"
               iconColor="text-blue-600 dark:text-blue-400"
               title="Total Tarefas"
-              subtitle="Obrigacoes fiscais"
+              subtitle="Em andamento"
               value={overviewLoading ? '-' : String(stats.total_tasks || 0)}
-              change={stats.by_status?.new || 0}
+              change={newTasksCount}
               trend="up"
               loading={overviewLoading}
             />
@@ -81,14 +82,7 @@ export default function Dashboard() {
               title="Health Score"
               subtitle="Performance geral"
               value={teamsLoading ? '-' : `${totalHealthScore}%`}
-              change={
-                totalHealthScore >= 80
-                  ? 11.01
-                  : totalHealthScore >= 50
-                    ? -5.02
-                    : -9.05
-              }
-              trend={healthTrend}
+              badge={totalHealthScore >= 80 ? 'Bom' : totalHealthScore >= 50 ? 'Atencao' : 'Critico'}
               loading={teamsLoading}
             />
 
@@ -99,8 +93,7 @@ export default function Dashboard() {
               title="Atrasadas"
               subtitle="Requer atencao"
               value={overviewLoading ? '-' : String(stats.delayed_tasks || 0)}
-              change={(stats.delayed_tasks || 0) > 0 ? -9.05 : 0}
-              trend={(stats.delayed_tasks || 0) > 0 ? 'down' : 'up'}
+              badge={(stats.delayed_tasks || 0) === 0 ? 'Nenhuma' : undefined}
               loading={overviewLoading}
             />
 
@@ -113,8 +106,7 @@ export default function Dashboard() {
               value={
                 overviewLoading ? '-' : String(stats.completed_this_month || 0)
               }
-              change={11.01}
-              trend="up"
+              badge={pendingCount > 0 ? `${pendingCount} pendentes` : undefined}
               loading={overviewLoading}
             />
           </div>

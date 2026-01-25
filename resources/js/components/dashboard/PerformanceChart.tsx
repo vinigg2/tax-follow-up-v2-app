@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useDashboardChartData } from '@/hooks/useDashboard';
 
 interface ChartDataPoint {
   name: string;
@@ -25,44 +26,6 @@ interface PerformanceChartProps {
 
 type PeriodKey = 'monthly' | 'quarterly' | 'annually';
 
-const generateData = (period: PeriodKey): ChartDataPoint[] => {
-  const months = [
-    'Jan',
-    'Fev',
-    'Mar',
-    'Abr',
-    'Mai',
-    'Jun',
-    'Jul',
-    'Ago',
-    'Set',
-    'Out',
-    'Nov',
-    'Dez',
-  ];
-  const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-  const years = ['2020', '2021', '2022', '2023', '2024'];
-
-  let labels: string[];
-  switch (period) {
-    case 'quarterly':
-      labels = quarters;
-      break;
-    case 'annually':
-      labels = years;
-      break;
-    default:
-      labels = months;
-  }
-
-  return labels.map((label) => ({
-    name: label,
-    concluidas: Math.floor(Math.random() * 50) + 30,
-    pendentes: Math.floor(Math.random() * 30) + 10,
-    atrasadas: Math.floor(Math.random() * 15) + 5,
-  }));
-};
-
 const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: 'monthly', label: 'Mensal' },
   { key: 'quarterly', label: 'Trimestral' },
@@ -71,10 +34,13 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 
 export default function PerformanceChart({
   data: externalData,
-  loading = false,
+  loading: externalLoading = false,
 }: PerformanceChartProps) {
   const [period, setPeriod] = useState<PeriodKey>('monthly');
-  const data = externalData || generateData(period);
+  const { data: chartResponse, isLoading: chartLoading } = useDashboardChartData(period);
+
+  const loading = externalLoading || chartLoading;
+  const data = externalData || chartResponse?.data || [];
 
   if (loading) {
     return (

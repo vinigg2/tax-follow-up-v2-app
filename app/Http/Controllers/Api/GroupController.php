@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Infrastructure\Persistence\Models\Company;
 use App\Infrastructure\Persistence\Models\Group;
 use App\Infrastructure\Persistence\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -146,6 +147,30 @@ class GroupController extends Controller
         return response()->json(['message' => 'Usuario removido do grupo com sucesso!']);
     }
 
+    public function addMember(Request $request, int $id): JsonResponse
+    {
+        $adminGroupIds = $request->input('admin_group_ids', []);
+
+        $group = Group::whereIn('id', $adminGroupIds)
+            ->where('deleted', false)
+            ->findOrFail($id);
+
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $userId = $request->user_id;
+
+        // Check if user is already in the group
+        if ($group->users()->where('users.id', $userId)->exists()) {
+            return response()->json(['message' => 'Usuario ja e membro deste grupo.'], 400);
+        }
+
+        $group->users()->attach($userId, ['is_admin' => false]);
+
+        return response()->json(['message' => 'Membro adicionado com sucesso!']);
+    }
+
     public function updateUserRole(Request $request, int $id, int $userId): JsonResponse
     {
         $adminGroupIds = $request->input('admin_group_ids', []);
@@ -165,5 +190,65 @@ class GroupController extends Controller
         $group->users()->updateExistingPivot($userId, ['is_admin' => $request->is_admin]);
 
         return response()->json(['message' => 'Funcao do usuario atualizada com sucesso!']);
+    }
+
+    public function companies(Request $request, int $id): JsonResponse
+    {
+        $groupIds = $request->input('accessible_group_ids', []);
+
+        $group = Group::whereIn('id', $groupIds)
+            ->where('deleted', false)
+            ->findOrFail($id);
+
+        $companies = $group->companies()
+            ->where('deleted', false)
+            ->select('id', 'name', 'cnpj', 'group_id')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['companies' => $companies]);
+    }
+
+    public function linkCompany(Request $request, int $id): JsonResponse
+    {
+        $adminGroupIds = $request->input('admin_group_ids', []);
+
+        $group = Group::whereIn('id', $adminGroupIds)
+            ->where('deleted', false)
+            ->findOrFail($id);
+
+        $request->validate([
+            'company_id' => 'required|integer|exists:companies,id',
+        ]);
+
+        $company = Company::where('deleted', false)->findOrFail($request->company_id);
+
+        // Check if company is already in this group
+        if ($company->group_id === $id) {
+            return response()->json(['message' => 'Empresa ja esta vinculada a este grupo.'], 400);
+        }
+
+        $company->update(['group_id' => $id]);
+
+        return response()->json(['message' => 'Empresa vinculada com sucesso!']);
+    }
+
+    public function unlinkCompany(Request $request, int $id, int $companyId): JsonResponse
+    {
+        $adminGroupIds = $request->input('admin_group_ids', []);
+
+        $group = Group::whereIn('id', $adminGroupIds)
+            ->where('deleted', false)
+            ->findOrFail($id);
+
+        $company = Company::where('group_id', $id)
+            ->where('deleted', false)
+            ->findOrFail($companyId);
+
+        // We can't really "unlink" a company since it needs to belong to a group
+        // Instead, we'll return an error explaining this
+        return response()->json([
+            'message' => 'Empresas nao podem ser desvinculadas. Use a opcao de transferir para outro grupo ou excluir a empresa.',
+        ], 400);
     }
 }

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import {
   Sheet,
   SheetContent,
@@ -12,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useCreateCompany, useUpdateCompany } from '@/hooks/useCompanies';
-import { useTeams } from '@/hooks/useTeams';
+import { useAuth } from '@/hooks/useAuth';
 import { Company } from '@/api/companies';
 import { Loader2 } from 'lucide-react';
 
@@ -23,18 +25,18 @@ interface CompanyFormDrawerProps {
 }
 
 export function CompanyFormDrawer({ open, onOpenChange, company }: CompanyFormDrawerProps) {
+  const { t } = useTranslation();
+  const { groups, isAdmin, isOwner } = useAuth();
   const [name, setName] = useState('');
   const [cnpj, setCnpj] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [teamId, setTeamId] = useState<number | undefined>();
+  const [country, setCountry] = useState('BR');
+  const [groupId, setGroupId] = useState<number | undefined>();
 
-  const { data: teamsData } = useTeams();
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
 
-  const teams = teamsData?.teams || [];
+  // Pegar grupos onde o usuario eh admin/owner
+  const adminGroups = groups.filter(g => isAdmin(g.id) || isOwner(g.id));
   const isEditing = !!company;
   const isLoading = createCompany.isPending || updateCompany.isPending;
 
@@ -42,17 +44,14 @@ export function CompanyFormDrawer({ open, onOpenChange, company }: CompanyFormDr
     if (company) {
       setName(company.name);
       setCnpj(company.cnpj || '');
-      setEmail(company.email || '');
-      setPhone(company.phone || '');
-      setAddress(company.address || '');
-      setTeamId(company.team_id);
+      setCountry(company.country || 'BR');
+      setGroupId(company.group_id);
     } else {
       setName('');
       setCnpj('');
-      setEmail('');
-      setPhone('');
-      setAddress('');
-      setTeamId(undefined);
+      setCountry('BR');
+      // Se houver apenas um grupo admin, seleciona automaticamente
+      setGroupId(adminGroups.length === 1 ? adminGroups[0].id : undefined);
     }
   }, [company, open]);
 
@@ -72,39 +71,36 @@ export function CompanyFormDrawer({ open, onOpenChange, company }: CompanyFormDr
     setCnpj(formatted);
   };
 
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 2) return `(${digits}`;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setPhone(formatted);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const data = {
       name,
-      cnpj: cnpj.replace(/\D/g, '') || undefined,
-      email: email || undefined,
-      phone: phone.replace(/\D/g, '') || undefined,
-      address: address || undefined,
-      team_id: teamId,
+      cnpj: cnpj.replace(/\D/g, ''),
+      country,
+      group_id: groupId,
     };
 
     try {
       if (isEditing && company) {
         await updateCompany.mutateAsync({ id: company.id, data });
+        toast.success(t('toast.companyUpdated'));
       } else {
         await createCompany.mutateAsync(data);
+        toast.success(t('toast.companyCreated'));
       }
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving company:', error);
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        toast.error(Array.isArray(firstError) ? firstError[0] : String(firstError));
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(t('toast.errorSavingCompany'));
+      }
     }
   };
 
@@ -134,64 +130,57 @@ export function CompanyFormDrawer({ open, onOpenChange, company }: CompanyFormDr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="cnpj">{t('companies.cnpj')} *</Label>
               <Input
                 id="cnpj"
                 value={cnpj}
                 onChange={handleCNPJChange}
                 placeholder="00.000.000/0000-00"
                 maxLength={18}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="contato@empresa.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={handlePhoneChange}
-                placeholder="(00) 00000-0000"
-                maxLength={15}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereco</Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Endereco completo"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="team">Equipe</Label>
+              <Label htmlFor="country">{t('companies.country')}</Label>
               <select
-                id="team"
-                value={teamId || ''}
-                onChange={(e) => setTeamId(e.target.value ? Number(e.target.value) : undefined)}
+                id="country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
                 className="input w-full"
+                required
               >
-                <option value="">Selecione uma equipe</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
+                <option value="BR">Brasil</option>
+                <option value="US">Estados Unidos</option>
+                <option value="PT">Portugal</option>
+                <option value="AR">Argentina</option>
+                <option value="CL">Chile</option>
+                <option value="CO">Colombia</option>
+                <option value="MX">Mexico</option>
+                <option value="UY">Uruguai</option>
+                <option value="PY">Paraguai</option>
               </select>
             </div>
+
+            {adminGroups.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="group">{t('nav.teams')}</Label>
+                <select
+                  id="group"
+                  value={groupId || ''}
+                  onChange={(e) => setGroupId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="input w-full"
+                  required
+                >
+                  <option value="">{t('common.select')}</option>
+                  {adminGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </SheetBody>
 
           <SheetFooter className="mt-6">
@@ -201,11 +190,11 @@ export function CompanyFormDrawer({ open, onOpenChange, company }: CompanyFormDr
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()}>
+            <Button type="submit" disabled={isLoading || !name.trim() || !cnpj.trim() || !groupId}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isEditing ? 'Salvar' : 'Cadastrar'}
+              {isEditing ? t('common.save') : t('common.create')}
             </Button>
           </SheetFooter>
         </form>

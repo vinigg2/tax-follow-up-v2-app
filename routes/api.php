@@ -119,10 +119,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::delete('/{group}', [GroupController::class, 'destroy']);
         Route::get('/{group}/users', [GroupController::class, 'users']);
         Route::get('/{group}/members', [GroupController::class, 'users']); // Alias
+        Route::post('/{group}/members', [GroupController::class, 'addMember']);
         Route::post('/{group}/invite', [InvitationController::class, 'store']);
         Route::delete('/{group}/users/{user}', [GroupController::class, 'removeUser']);
         Route::delete('/{group}/members/{user}', [GroupController::class, 'removeUser']); // Alias
         Route::put('/{group}/users/{user}/role', [GroupController::class, 'updateUserRole']);
+
+        // Team companies management
+        Route::get('/{group}/companies', [GroupController::class, 'companies']);
+        Route::post('/{group}/companies', [GroupController::class, 'linkCompany']);
+        Route::delete('/{group}/companies/{company}', [GroupController::class, 'unlinkCompany']);
     });
 
     // Users
@@ -142,6 +148,8 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::get('companies/{company}/status', [DashboardController::class, 'companyStatus']);
         Route::get('calendar', [DashboardController::class, 'calendar']);
         Route::get('performance', [DashboardController::class, 'performance']);
+        Route::get('chart-data', [DashboardController::class, 'chartData']);
+        Route::get('recent-activities', [DashboardController::class, 'recentActivities']);
     });
 
     // Notifications

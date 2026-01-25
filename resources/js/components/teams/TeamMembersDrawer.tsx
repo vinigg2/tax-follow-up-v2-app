@@ -62,11 +62,15 @@ export function TeamMembersDrawer({ open, onOpenChange, team }: TeamMembersDrawe
       member.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredAvailableUsers = availableUsers.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter out users who are already members
+  const memberIds = new Set(members.map((m) => m.id));
+  const filteredAvailableUsers = availableUsers
+    .filter((user) => !memberIds.has(user.id))
+    .filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const handleAddMember = async (userId: number) => {
     if (!team) return;

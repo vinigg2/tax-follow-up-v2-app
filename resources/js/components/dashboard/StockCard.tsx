@@ -8,9 +8,10 @@ interface StockCardProps {
   title: string;
   subtitle: string;
   value: string;
-  change: number | string;
+  change?: number | string;
   trend?: 'up' | 'down';
   loading?: boolean;
+  badge?: string;
 }
 
 const ArrowUpIcon = () => (
@@ -59,10 +60,12 @@ export default function StockCard({
   change,
   trend = 'up',
   loading = false,
+  badge,
 }: StockCardProps) {
   const isPositive = trend === 'up';
   const changeValue =
-    typeof change === 'number' ? Math.abs(change).toFixed(2) : change;
+    typeof change === 'number' ? Math.abs(change).toFixed(0) : change;
+  const showChange = change !== undefined && change !== null && change !== 0;
 
   if (loading) {
     return (
@@ -113,17 +116,25 @@ export default function StockCard({
           </h4>
         </div>
 
-        <span
-          className={cn(
-            'flex items-center gap-1 rounded-full py-0.5 pl-2 pr-2.5 text-sm font-medium',
-            isPositive
-              ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
-              : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'
-          )}
-        >
-          {isPositive ? <ArrowUpIcon /> : <ArrowDownIcon />}
-          {changeValue}%
-        </span>
+        {showChange && (
+          <span
+            className={cn(
+              'flex items-center gap-1 rounded-full py-0.5 pl-2 pr-2.5 text-sm font-medium',
+              isPositive
+                ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'
+            )}
+          >
+            {isPositive ? <ArrowUpIcon /> : <ArrowDownIcon />}
+            {changeValue} {typeof change === 'number' ? 'novas' : ''}
+          </span>
+        )}
+
+        {badge && !showChange && (
+          <span className="rounded-full py-0.5 px-2.5 text-sm font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            {badge}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -319,6 +319,143 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Get chart data for performance visualization
+     */
+    public function chartData(Request $request): JsonResponse
+    {
+        $groupIds = $request->input('accessible_group_ids', []);
+        $type = $request->input('type', 'monthly'); // monthly, quarterly, annually
+
+        $months = [];
+        $monthsCount = match ($type) {
+            'quarterly' => 4,
+            'annually' => 5,
+            default => 12,
+        };
+
+        $monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        $quarterLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+        for ($i = $monthsCount - 1; $i >= 0; $i--) {
+            if ($type === 'annually') {
+                $date = now()->subYears($i);
+                $label = $date->format('Y');
+                $startDate = $date->copy()->startOfYear();
+                $endDate = $date->copy()->endOfYear();
+            } elseif ($type === 'quarterly') {
+                $date = now()->subQuarters($i);
+                $quarter = ceil($date->month / 3);
+                $label = $quarterLabels[$quarter - 1] . ' ' . $date->format('Y');
+                $startDate = $date->copy()->firstOfQuarter();
+                $endDate = $date->copy()->lastOfQuarter();
+            } else {
+                $date = now()->subMonths($i);
+                $label = $monthLabels[$date->month - 1];
+                $startDate = $date->copy()->startOfMonth();
+                $endDate = $date->copy()->endOfMonth();
+            }
+
+            // Count completed tasks in this period
+            $completed = Task::whereIn('group_id', $groupIds)
+                ->where('deleted', false)
+                ->whereIn('status', ['finished', 'rectified'])
+                ->whereBetween('conclusion_date', [$startDate, $endDate])
+                ->count();
+
+            // Count pending tasks that existed in this period
+            $pending = Task::whereIn('group_id', $groupIds)
+                ->where('deleted', false)
+                ->where('status', 'pending')
+                ->where('created_at', '<=', $endDate)
+                ->where(function ($q) use ($endDate) {
+                    $q->whereNull('conclusion_date')
+                        ->orWhere('conclusion_date', '>', $endDate);
+                })
+                ->count();
+
+            // Count late tasks in this period
+            $late = Task::whereIn('group_id', $groupIds)
+                ->where('deleted', false)
+                ->where('status', 'late')
+                ->where('created_at', '<=', $endDate)
+                ->where(function ($q) use ($endDate) {
+                    $q->whereNull('conclusion_date')
+                        ->orWhere('conclusion_date', '>', $endDate);
+                })
+                ->count();
+
+            $months[] = [
+                'name' => $label,
+                'concluidas' => $completed,
+                'pendentes' => $pending,
+                'atrasadas' => $late,
+            ];
+        }
+
+        return response()->json([
+            'type' => $type,
+            'data' => $months,
+        ]);
+    }
+
+    /**
+     * Get recent activities across all groups
+     */
+    public function recentActivities(Request $request): JsonResponse
+    {
+        $groupIds = $request->input('accessible_group_ids', []);
+        $limit = min($request->input('limit', 10), 50);
+
+        $activities = DB::table('timelines')
+            ->join('tasks', 'timelines.task_id', '=', 'tasks.id')
+            ->join('companies', 'tasks.company_id', '=', 'companies.id')
+            ->leftJoin('users', 'timelines.user_id', '=', 'users.id')
+            ->whereIn('tasks.group_id', $groupIds)
+            ->where('tasks.deleted', false)
+            ->orderBy('timelines.created_at', 'desc')
+            ->limit($limit)
+            ->select([
+                'timelines.id',
+                'timelines.type',
+                'timelines.description',
+                'timelines.created_at',
+                'tasks.id as task_id',
+                'tasks.title as task_title',
+                'companies.name as company_name',
+                'users.name as user_name',
+            ])
+            ->get()
+            ->map(function ($activity) {
+                return [
+                    'id' => $activity->id,
+                    'type' => $this->mapTimelineTypeToActivityType($activity->type),
+                    'title' => $activity->description ?: $activity->task_title,
+                    'user' => $activity->user_name ?: 'Sistema',
+                    'date' => \Carbon\Carbon::parse($activity->created_at)->format('Y-m-d H:i'),
+                    'company' => $activity->company_name,
+                    'task_id' => $activity->task_id,
+                ];
+            });
+
+        return response()->json([
+            'activities' => $activities,
+        ]);
+    }
+
+    private function mapTimelineTypeToActivityType(string $type): string
+    {
+        return match ($type) {
+            'created_task' => 'task_created',
+            'finished' => 'task_completed',
+            'changed_status' => 'task_completed',
+            'send_file' => 'document_uploaded',
+            'free_text' => 'comment_added',
+            'changed_responsible' => 'user_assigned',
+            default => str_contains($type, 'late') || str_contains($type, 'delayed') ? 'task_delayed' : 'task_created',
+        };
+    }
+
     // ==================== Private Methods ====================
 
     private function getTotalTasks(array $groupIds): int

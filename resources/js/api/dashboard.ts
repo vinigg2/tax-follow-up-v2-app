@@ -83,13 +83,43 @@ export interface CalendarResponse {
 }
 
 export interface PerformanceData {
-  period: string;
-  data: {
-    name: string;
-    concluidas: number;
-    pendentes: number;
-    atrasadas: number;
+  period_days: number;
+  completed_total: number;
+  completed_on_time: number;
+  completed_late: number;
+  on_time_percentage: number;
+  avg_completion_days: number;
+  by_user: {
+    user_id: number;
+    user_name: string;
+    completed: number;
   }[];
+}
+
+export interface ChartDataPoint {
+  name: string;
+  concluidas: number;
+  pendentes: number;
+  atrasadas: number;
+}
+
+export interface ChartDataResponse {
+  type: string;
+  data: ChartDataPoint[];
+}
+
+export interface Activity {
+  id: number | string;
+  type: 'task_created' | 'task_completed' | 'task_delayed' | 'document_uploaded' | 'comment_added' | 'user_assigned';
+  title: string;
+  user: string;
+  date: string;
+  company: string;
+  task_id?: number;
+}
+
+export interface RecentActivitiesResponse {
+  activities: Activity[];
 }
 
 export const dashboardApi = {
@@ -130,6 +160,20 @@ export const dashboardApi = {
   getPerformance: async (period: number = 30): Promise<PerformanceData> => {
     const response = await api.get('/dashboard/performance', {
       params: { period },
+    });
+    return response.data;
+  },
+
+  getChartData: async (type: 'monthly' | 'quarterly' | 'annually' = 'monthly'): Promise<ChartDataResponse> => {
+    const response = await api.get('/dashboard/chart-data', {
+      params: { type },
+    });
+    return response.data;
+  },
+
+  getRecentActivities: async (limit: number = 10): Promise<RecentActivitiesResponse> => {
+    const response = await api.get('/dashboard/recent-activities', {
+      params: { limit },
     });
     return response.data;
   },

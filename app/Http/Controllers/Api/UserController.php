@@ -260,15 +260,11 @@ class UserController extends Controller
      */
     public function available(Request $request): JsonResponse
     {
-        $groupIds = $request->input('accessible_group_ids', []);
-
-        // Get all users from accessible groups
-        $users = User::whereHas('groups', function ($query) use ($groupIds) {
-            $query->whereIn('groups.id', $groupIds);
-        })
-        ->where('is_active', true)
-        ->select('id', 'name', 'email', 'avatar')
-        ->get();
+        // Get all active users - they can be added to any team
+        $users = User::where('is_active', true)
+            ->select('id', 'name', 'email', 'avatar')
+            ->orderBy('name')
+            ->get();
 
         return response()->json(['users' => $users]);
     }

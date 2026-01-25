@@ -7,7 +7,7 @@ import {
   CompanyFormData,
 } from '@/api/companies';
 
-export function useCompanies(params?: { team_id?: number }) {
+export function useCompanies(params?: { group_id?: number }) {
   return useQuery<CompaniesResponse>({
     queryKey: ['companies', params],
     queryFn: () => companiesApi.getAll(params),

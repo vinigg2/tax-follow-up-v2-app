@@ -95,9 +95,9 @@ class ObligationController extends Controller
             'month_deadline' => 'nullable|integer|min:1|max:12',
             'group_id' => 'required|integer|in:' . implode(',', $groupIds),
             'kind' => 'required|string|max:30',
-            'initial_generation_date' => 'required|date',
+            'initial_generation_date' => 'nullable|date',
             'final_generation_date' => 'nullable|date|after:initial_generation_date',
-            'period' => 'nullable|integer|min:1',
+            'period' => 'nullable|integer|min:0',
             'generate_automatic_tasks' => 'nullable|boolean',
             'show_dashboard' => 'nullable|boolean',
             'months_advanced' => 'nullable|integer|min:0',
@@ -144,7 +144,7 @@ class ObligationController extends Controller
             'month_deadline' => 'nullable|integer|min:1|max:12',
             'kind' => 'sometimes|string|max:30',
             'final_generation_date' => 'nullable|date',
-            'period' => 'nullable|integer|min:1',
+            'period' => 'nullable|integer|min:0',
             'generate_automatic_tasks' => 'nullable|boolean',
             'show_dashboard' => 'nullable|boolean',
             'months_advanced' => 'nullable|integer|min:0',
@@ -220,8 +220,13 @@ class ObligationController extends Controller
             $request->responsible_user_id
         );
 
+        // Load relations on each task in the collection
+        $tasks->each(function ($task) {
+            $task->load(['company', 'responsibleUser', 'documents']);
+        });
+
         return response()->json([
-            'tasks' => $tasks->load(['company', 'responsibleUser', 'documents']),
+            'tasks' => $tasks,
             'count' => $tasks->count(),
             'message' => "{$tasks->count()} tarefa(s) criada(s) com sucesso!",
         ]);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   MoreHorizontal,
   CheckCircle,
@@ -6,6 +7,7 @@ import {
   Calendar,
   Send,
   Archive,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/helpers';
 import { ChecklistManager } from './ChecklistManager';
 import { useTaskChecklists } from '@/hooks/useChecklists';
+import { useTaskTimeline, useAddTimelineEntry, useArchiveTask } from '@/hooks/useTasks';
 
 interface Task {
   id: number | string;
@@ -67,27 +70,6 @@ interface TaskActionsDrawerProps {
   showTriggerOnHover?: boolean;
 }
 
-const mockActivities: ActivityItem[] = [
-  {
-    id: 1,
-    user: { name: 'Maria Santos' },
-    message: 'Iniciou a coleta dos documentos fiscais',
-    created_at: '2024-01-15 09:30',
-  },
-  {
-    id: 2,
-    user: { name: 'Joao Silva' },
-    message: 'Documentos validados com sucesso. Prosseguindo para geracao do arquivo.',
-    created_at: '2024-01-15 14:45',
-  },
-  {
-    id: 3,
-    user: { name: 'Maria Santos' },
-    message: 'Encontrei uma divergencia no valor do ICMS. Verificando com o cliente.',
-    created_at: '2024-01-16 10:00',
-  },
-];
-
 export function TaskActionsDrawer({
   task,
   triggerClassName,
@@ -95,9 +77,6 @@ export function TaskActionsDrawer({
 }: TaskActionsDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
-  const [activities] = useState<ActivityItem[]>(
-    task.activities || mockActivities
-  );
   const [newComment, setNewComment] = useState('');
   const [description, setDescription] = useState(task.description || '');
   const [wsd, setWsd] = useState(task.wsd || '');
@@ -106,21 +85,48 @@ export function TaskActionsDrawer({
   const { data: checklistData } = useTaskChecklists(task.id);
   const checklistItems = checklistData?.checklists || [];
 
+  // Fetch timeline (activities) from API
+  const { data: timelineData } = useTaskTimeline(isOpen ? task.id : undefined);
+  const activities = (timelineData?.timeline || []).map((entry: any) => ({
+    id: entry.id,
+    user: entry.user || { name: 'Sistema' },
+    message: entry.description || entry.type_label,
+    created_at: entry.formatted_date || entry.created_at,
+  }));
+
+  // Mutations
+  const addTimelineEntry = useAddTimelineEntry();
+  const archiveTask = useArchiveTask();
+
   const isLate = task.days_until !== undefined && task.days_until < 0;
   const delayDays = isLate && task.days_until ? Math.abs(task.days_until) : 0;
 
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (!newComment.trim()) return;
-    // TODO: Send comment to API
-    console.log('Enviando comentario:', newComment);
-    setNewComment('');
+
+    try {
+      await addTimelineEntry.mutateAsync({
+        taskId: task.id,
+        data: { description: newComment.trim() },
+      });
+      toast.success('Comentario adicionado!');
+      setNewComment('');
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      toast.error(error.response?.data?.message || 'Erro ao adicionar comentario');
+    }
   };
 
-  const handleArchiveTask = () => {
-    // TODO: Archive task via API
-    console.log('Arquivando tarefa:', task.id);
-    setIsArchiveDialogOpen(false);
-    setIsOpen(false);
+  const handleArchiveTask = async () => {
+    try {
+      await archiveTask.mutateAsync(task.id);
+      toast.success('Tarefa arquivada!');
+      setIsArchiveDialogOpen(false);
+      setIsOpen(false);
+    } catch (error: any) {
+      console.error('Error archiving task:', error);
+      toast.error(error.response?.data?.message || 'Erro ao arquivar tarefa');
+    }
   };
 
   // Calculate progress from real checklist data
@@ -375,12 +381,21 @@ export function TaskActionsDrawer({
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Adicionar comentario..."
                   className="input flex-1"
+                  disabled={addTimelineEntry.isPending}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSendComment();
+                    if (e.key === 'Enter' && !addTimelineEntry.isPending) handleSendComment();
                   }}
                 />
-                <Button onClick={handleSendComment} size="md">
-                  <Send className="w-4 h-4" />
+                <Button
+                  onClick={handleSendComment}
+                  size="md"
+                  disabled={addTimelineEntry.isPending || !newComment.trim()}
+                >
+                  {addTimelineEntry.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -447,11 +462,13 @@ export function TaskActionsDrawer({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel disabled={archiveTask.isPending}>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleArchiveTask}
                 className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={archiveTask.isPending}
               >
+                {archiveTask.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Arquivar
               </AlertDialogAction>
             </AlertDialogFooter>

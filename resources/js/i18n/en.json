@@ -70,7 +70,18 @@
         "quarterly": "Quarterly",
         "annual": "Annual",
         "generateTasks": "Generate Tasks",
-        "documentTypes": "Document Types"
+        "documentTypes": "Document Types",
+        "selectCompaniesAndPeriod": "Select companies and period to generate tasks",
+        "period": "Period",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "companies": "Companies",
+        "competenciesCount": "{{count}} competency(ies) will be generated",
+        "selectedCompanies": "{{count}} company(ies) selected",
+        "estimatedTasks": "Approximately {{count}} task(s) will be generated",
+        "selectAtLeastOneCompany": "Select at least one company",
+        "invalidDateRange": "Select a valid date range",
+        "noCompaniesAvailable": "No companies available"
     },
     "companies": {
         "title": "Companies",
@@ -101,5 +112,31 @@
         "tasksOverview": "Tasks Overview",
         "delayedTasks": "Delayed Tasks",
         "recentDeliveries": "Recent Deliveries"
+    },
+    "toast": {
+        "obligationCreated": "Obligation created successfully!",
+        "obligationUpdated": "Obligation updated successfully!",
+        "obligationDeleted": "Obligation deleted successfully!",
+        "errorSavingObligation": "Error saving obligation",
+        "errorDeletingObligation": "Error deleting obligation",
+        "tasksGenerated": "{{count}} task(s) generated successfully!",
+        "errorGeneratingTasks": "Error generating tasks",
+        "taskCreated": "Task created successfully!",
+        "taskUpdated": "Task updated successfully!",
+        "errorSavingTask": "Error saving task",
+        "companyCreated": "Company created successfully!",
+        "companyUpdated": "Company updated successfully!",
+        "companyDeleted": "Company deleted successfully!",
+        "errorSavingCompany": "Error saving company",
+        "errorDeletingCompany": "Error deleting company",
+        "teamCreated": "Team created successfully!",
+        "teamUpdated": "Team updated successfully!",
+        "errorSavingTeam": "Error saving team",
+        "memberAdded": "Member added successfully!",
+        "memberRemoved": "Member removed successfully!",
+        "validationError": "Validation error",
+        "genericError": "An error occurred. Please try again.",
+        "success": "Success!",
+        "error": "Error!"
     }
 }

@@ -145,6 +145,8 @@ class TimelineController extends Controller
             'changed_description' => 'Alterou descricao',
             'changed_deadline' => 'Alterou prazo',
             'changed_responsible' => 'Alterou responsavel',
+            'changed_status' => 'Alterou status',
+            'created_task' => 'Criou tarefa',
             'free_text' => 'Comentou',
         ];
 

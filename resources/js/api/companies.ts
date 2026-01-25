@@ -4,11 +4,9 @@ export interface Company {
   id: number;
   name: string;
   cnpj?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  team_id?: number;
-  team?: {
+  country?: string;
+  group_id?: number;
+  group?: {
     id: number;
     name: string;
   };
@@ -28,15 +26,13 @@ export interface CompanyResponse {
 
 export interface CompanyFormData {
   name: string;
-  cnpj?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  team_id?: number;
+  cnpj: string;
+  country: string;
+  group_id?: number;
 }
 
 export const companiesApi = {
-  getAll: async (params?: { team_id?: number }): Promise<CompaniesResponse> => {
+  getAll: async (params?: { group_id?: number }): Promise<CompaniesResponse> => {
     const response = await api.get('/companies', { params });
     return response.data;
   },

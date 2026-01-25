@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
 import { ObligationPreview } from './ObligationPreview';
 import { Loader2, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ObligationFormModalProps {
   open: boolean;
@@ -51,6 +54,9 @@ export function ObligationFormModal({
   onOpenChange,
   obligation,
 }: ObligationFormModalProps) {
+  const { t } = useTranslation();
+  const { groups } = useAuth();
+  const [groupId, setGroupId] = useState<number>(0);
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<ObligationKind>('obrigacoes_acessorias');
   const [description, setDescription] = useState('');
@@ -72,6 +78,7 @@ export function ObligationFormModal({
 
   useEffect(() => {
     if (obligation) {
+      setGroupId(obligation.group_id);
       setTitle(obligation.title);
       setKind(obligation.kind);
       setDescription(obligation.description || '');
@@ -85,6 +92,7 @@ export function ObligationFormModal({
       setFinalDate(obligation.final_generation_date || '');
       setShowAutoSection(obligation.generate_automatic_tasks);
     } else {
+      setGroupId(groups[0]?.id || 0);
       setTitle('');
       setKind('obrigacoes_acessorias');
       setDescription('');
@@ -98,12 +106,13 @@ export function ObligationFormModal({
       setFinalDate('');
       setShowAutoSection(false);
     }
-  }, [obligation, open]);
+  }, [obligation, open, groups]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const data: ObligationFormData = {
+      group_id: groupId,
       title,
       kind,
       description: description || undefined,
@@ -120,16 +129,29 @@ export function ObligationFormModal({
     try {
       if (isEditing && obligation) {
         await updateObligation.mutateAsync({ id: obligation.id, data });
+        toast.success(t('toast.obligationUpdated'));
       } else {
         await createObligation.mutateAsync(data);
+        toast.success(t('toast.obligationCreated'));
       }
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving obligation:', error);
+
+      // Handle validation errors from backend
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        toast.error(Array.isArray(firstError) ? firstError[0] : firstError);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(t('toast.errorSavingObligation'));
+      }
     }
   };
 
-  const canSubmit = title.trim() && dayDeadline >= 1 && dayDeadline <= 31;
+  const canSubmit = groupId > 0 && title.trim() && dayDeadline >= 1 && dayDeadline <= 31;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,6 +174,25 @@ export function ObligationFormModal({
               </h3>
 
               <div className="grid gap-4 sm:grid-cols-2">
+                {groups.length > 1 && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="group">Grupo *</Label>
+                    <select
+                      id="group"
+                      value={groupId}
+                      onChange={(e) => setGroupId(Number(e.target.value))}
+                      className="input w-full"
+                      disabled={isEditing}
+                    >
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="title">Titulo *</Label>
                   <Input
