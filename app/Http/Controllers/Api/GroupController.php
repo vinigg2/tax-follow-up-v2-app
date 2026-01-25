@@ -17,7 +17,13 @@ class GroupController extends Controller
         $groups = Group::whereIn('id', $groupIds)
             ->where('deleted', false)
             ->with('owner')
-            ->get();
+            ->withCount(['users', 'companies'])
+            ->get()
+            ->map(function ($group) {
+                $group->members_count = $group->users_count;
+                $group->companies_count = $group->companies_count;
+                return $group;
+            });
 
         // Return 'teams' key when called via /teams endpoint for frontend compatibility
         $key = str_contains($request->path(), 'teams') ? 'teams' : 'groups';
