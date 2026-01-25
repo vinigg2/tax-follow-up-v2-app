@@ -64,7 +64,7 @@ jobs:
             --exclude='storage/framework/sessions/*' \
             --exclude='storage/framework/views/*' \
             -e "ssh -i ~/.ssh/deploy_key" \
-            ./ vinigg2@iad1-shared-b7-10.dreamhost.com:/home/vinigg2/demo.taxfollowup.com.br/
+            ./ vinigg2@iad1-shared-b7-10.dreamhost.com:/home/vinigg2/demo.taxfollowup.com.br.app/
 
       - name: Run deployment commands
         uses: appleboy/ssh-action@v1.0.3
@@ -88,7 +88,7 @@ jobs:
           port: 22
           envs: APP_KEY,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET
           script: |
-            cd /home/vinigg2/demo.taxfollowup.com.br
+            cd /home/vinigg2/demo.taxfollowup.com.br.app
 
             # Create .env file
             cat > .env << EOF
