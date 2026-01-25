@@ -100,6 +100,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('document-types/{documentType}/approvers/reorder', [ApproverController::class, 'reorder']);
 
     // Companies
+    Route::get('companies/available', [CompanyController::class, 'available']);
     Route::apiResource('companies', CompanyController::class);
 
     // Groups (Teams)
@@ -125,6 +126,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     });
 
     // Users
+    Route::get('users/available', [UserController::class, 'available']);
     Route::apiResource('users', UserController::class);
     Route::put('users/{user}/notifications', [UserController::class, 'updateNotifications']);
     Route::post('users/{user}/avatar', [UserController::class, 'uploadAvatar']);

@@ -93,4 +93,20 @@ class CompanyController extends Controller
 
         return response()->json(['message' => 'Empresa excluida com sucesso!']);
     }
+
+    /**
+     * Get available companies (for team management)
+     */
+    public function available(Request $request): JsonResponse
+    {
+        $groupIds = $request->input('accessible_group_ids', []);
+
+        $companies = Company::whereIn('group_id', $groupIds)
+            ->where('deleted', false)
+            ->select('id', 'name', 'cnpj', 'group_id')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['companies' => $companies]);
+    }
 }

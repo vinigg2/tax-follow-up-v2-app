@@ -19,7 +19,10 @@ class GroupController extends Controller
             ->with('owner')
             ->get();
 
-        return response()->json(['groups' => $groups]);
+        // Return 'teams' key when called via /teams endpoint for frontend compatibility
+        $key = str_contains($request->path(), 'teams') ? 'teams' : 'groups';
+
+        return response()->json([$key => $groups]);
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -31,7 +34,10 @@ class GroupController extends Controller
             ->with(['owner', 'users'])
             ->findOrFail($id);
 
-        return response()->json(['group' => $group]);
+        // Return 'team' key when called via /teams endpoint for frontend compatibility
+        $key = str_contains($request->path(), 'teams') ? 'team' : 'group';
+
+        return response()->json([$key => $group]);
     }
 
     public function store(Request $request): JsonResponse
@@ -48,8 +54,11 @@ class GroupController extends Controller
         // Add creator as admin
         $group->users()->attach($request->user()->id, ['is_admin' => true]);
 
+        // Return 'team' key when called via /teams endpoint for frontend compatibility
+        $key = str_contains($request->path(), 'teams') ? 'team' : 'group';
+
         return response()->json([
-            'group' => $group->load(['owner', 'users']),
+            $key => $group->load(['owner', 'users']),
             'message' => 'Grupo criado com sucesso!',
         ], 201);
     }
@@ -68,8 +77,11 @@ class GroupController extends Controller
 
         $group->update($request->only('name'));
 
+        // Return 'team' key when called via /teams endpoint for frontend compatibility
+        $key = str_contains($request->path(), 'teams') ? 'team' : 'group';
+
         return response()->json([
-            'group' => $group->fresh()->load(['owner', 'users']),
+            $key => $group->fresh()->load(['owner', 'users']),
             'message' => 'Grupo atualizado com sucesso!',
         ]);
     }
@@ -105,7 +117,10 @@ class GroupController extends Controller
             ];
         });
 
-        return response()->json(['users' => $users]);
+        // Return 'members' key when called via /teams/*/members endpoint for frontend compatibility
+        $key = str_contains($request->path(), 'members') ? 'members' : 'users';
+
+        return response()->json([$key => $users]);
     }
 
     public function removeUser(Request $request, int $id, int $userId): JsonResponse
