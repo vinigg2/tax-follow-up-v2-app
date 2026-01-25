@@ -7,11 +7,66 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to DreamHost via SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: public/build/
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: public/build/
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H iad1-shared-b7-10.dreamhost.com >> ~/.ssh/known_hosts
+
+      - name: Sync files to server
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ vinigg2@iad1-shared-b7-10.dreamhost.com:/home/vinigg2/demo.taxfollowup.com.br/
+
+      - name: Run deployment commands
         uses: appleboy/ssh-action@v1.0.3
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
@@ -35,15 +90,11 @@ jobs:
           script: |
             cd /home/vinigg2/demo.taxfollowup.com.br
 
-            # Pull latest changes
-            git fetch origin main
-            git reset --hard origin/main
-
             # Create .env file
-            cat > .env << 'ENVFILE'
+            cat > .env << EOF
             APP_NAME="Tax Follow Up"
             APP_ENV=staging
-            APP_KEY=$APP_KEY
+            APP_KEY=${APP_KEY}
             APP_DEBUG=false
             APP_TIMEZONE=America/Sao_Paulo
             APP_URL=https://demo.taxfollowup.com.br
@@ -59,11 +110,11 @@ jobs:
             LOG_LEVEL=error
 
             DB_CONNECTION=mysql
-            DB_HOST=$DB_HOST
+            DB_HOST=${DB_HOST}
             DB_PORT=3306
-            DB_DATABASE=$DB_DATABASE
-            DB_USERNAME=$DB_USERNAME
-            DB_PASSWORD=$DB_PASSWORD
+            DB_DATABASE=${DB_DATABASE}
+            DB_USERNAME=${DB_USERNAME}
+            DB_PASSWORD=${DB_PASSWORD}
 
             SESSION_DRIVER=file
             SESSION_LIFETIME=120
@@ -79,29 +130,30 @@ jobs:
             CACHE_PREFIX=tfu_
 
             MAIL_MAILER=smtp
-            MAIL_HOST=$MAIL_HOST
-            MAIL_PORT=$MAIL_PORT
-            MAIL_USERNAME=$MAIL_USERNAME
-            MAIL_PASSWORD=$MAIL_PASSWORD
+            MAIL_HOST=${MAIL_HOST}
+            MAIL_PORT=${MAIL_PORT}
+            MAIL_USERNAME=${MAIL_USERNAME}
+            MAIL_PASSWORD=${MAIL_PASSWORD}
             MAIL_ENCRYPTION=tls
             MAIL_FROM_ADDRESS="noreply@taxfollowup.com.br"
             MAIL_FROM_NAME="Tax Follow Up"
 
-            AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-            AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
             AWS_DEFAULT_REGION=us-east-2
-            AWS_BUCKET=$AWS_BUCKET
+            AWS_BUCKET=${AWS_BUCKET}
             AWS_USE_PATH_STYLE_ENDPOINT=false
 
             SANCTUM_STATEFUL_DOMAINS=demo.taxfollowup.com.br
-            ENVFILE
+            EOF
+
+            # Create storage directories if they don't exist
+            mkdir -p storage/logs storage/framework/{cache,sessions,views}
+            chmod -R 775 storage bootstrap/cache
 
             # Install PHP dependencies
+            php ~/composer.phar install --no-interaction --prefer-dist --optimize-autoloader --no-dev 2>/dev/null || \
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-
-            # Install Node dependencies and build assets
-            npm ci
-            npm run build
 
             # Laravel optimizations
             php artisan config:cache
@@ -111,7 +163,7 @@ jobs:
             # Run migrations
             php artisan migrate --force
 
-            # Clear and rebuild caches
+            # Clear cache
             php artisan cache:clear
 
             echo "Deploy completed successfully!"
