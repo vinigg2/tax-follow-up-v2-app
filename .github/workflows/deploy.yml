@@ -1,0 +1,47 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DreamHost via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: iad1-shared-b7-10.dreamhost.com
+          username: vinigg2
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /home/vinigg2/demo.taxfollowup.com.br
+
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install PHP dependencies
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+            # Install Node dependencies and build assets
+            npm ci
+            npm run build
+
+            # Laravel optimizations
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # Run migrations
+            php artisan migrate --force
+
+            # Clear and rebuild caches
+            php artisan cache:clear
+            php artisan queue:restart
+
+            echo "Deploy completed successfully!"
