@@ -11,6 +11,7 @@ O Tax Follow Up e uma plataforma completa para gerenciar obrigacoes fiscais, aco
 - Fazer **upload e aprovacao de documentos** com workflow configuravel
 - Organizar **equipes** com diferentes niveis de acesso
 - Acompanhar **metricas** e produtividade no dashboard
+- Utilizar **assistente de IA** para automatizar processos e obter sugestoes
 
 ## Stack Tecnologica
 
@@ -168,6 +169,28 @@ O workflow:
 1. Build do frontend (npm run build)
 2. Sync dos arquivos via rsync
 3. Execucao das migrations
+
+## Assistente de IA
+
+O sistema possui um assistente de IA integrado que pode ajudar a automatizar tarefas. Para ativar, configure as variaveis no `.env`:
+
+```env
+# Usando OpenRouter (recomendado)
+AI_API_URL=https://openrouter.ai/api/v1
+AI_API_KEY=sua-chave-openrouter
+AI_MODEL=anthropic/claude-3.5-sonnet
+
+# Ou usando Anthropic diretamente
+# AI_API_URL=https://api.anthropic.com/v1
+# AI_API_KEY=sua-chave-anthropic
+# AI_MODEL=claude-3-5-sonnet-20241022
+```
+
+O assistente pode:
+- Criar tarefas e obrigacoes fiscais
+- Analisar documentos anexados
+- Sugerir acoes baseado no contexto da pagina
+- Responder perguntas sobre o sistema
 
 ## Licenca
 

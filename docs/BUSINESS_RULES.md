@@ -442,6 +442,53 @@ percent = (documentos_finalizados / total_documentos_obrigatorios) * 100
 
 ---
 
+## Assistente de IA
+
+O sistema possui um assistente de IA integrado que auxilia na automacao de processos.
+
+### Funcionalidades
+
+| Funcao | Descricao |
+|--------|-----------|
+| **Chat** | Conversa em linguagem natural sobre o sistema |
+| **Criar Tarefas** | Cria tarefas baseado em descricao |
+| **Criar Obrigacoes** | Gera templates de obrigacoes fiscais |
+| **Analisar Documentos** | Analisa documentos anexados a tarefas |
+| **Sugestoes** | Sugere acoes baseado no contexto da pagina |
+
+### Fluxo de Acoes
+
+```text
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│  Usuario    │────►│  IA processa │────►│  Confirmacao│
+│  descreve   │     │  e sugere    │     │  do usuario │
+└─────────────┘     └──────────────┘     └──────┬──────┘
+                                                │
+                                                ▼
+                                         ┌─────────────┐
+                                         │   Executa   │
+                                         │    acao     │
+                                         └─────────────┘
+```
+
+### Contexto Automatico
+
+O assistente captura automaticamente:
+- Pagina atual (tarefas, obrigacoes, empresas)
+- Tarefa selecionada (se estiver visualizando)
+- Empresa ativa
+- Grupo selecionado
+- Usuario logado
+
+### Configuracao
+
+Requer configuracao das variaveis de ambiente:
+- `AI_API_URL`: URL da API (OpenRouter ou Anthropic)
+- `AI_API_KEY`: Chave de acesso
+- `AI_MODEL`: Modelo a ser utilizado
+
+---
+
 ## Glossario
 
 | Termo | Descricao |
