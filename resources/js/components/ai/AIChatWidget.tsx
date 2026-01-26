@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bot, X, Send, Loader2, Sparkles, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useAIContext } from '@/context/AIContext';
@@ -14,7 +13,7 @@ export function AIChatWidget() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { context } = useAIContext();
   const {
@@ -28,11 +27,15 @@ export function AIChatWidget() {
   } = useAIChat();
 
   // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, isLoading, scrollToBottom]);
 
   // Focus textarea when chat opens
   useEffect(() => {
@@ -117,7 +120,7 @@ export function AIChatWidget() {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <div className="flex-1 overflow-y-auto p-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-4">
                 <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -156,9 +159,10 @@ export function AIChatWidget() {
                     <span className="text-sm">Pensando...</span>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           {/* Action Confirmation */}
           {pendingAction && (
@@ -166,6 +170,7 @@ export function AIChatWidget() {
               action={pendingAction}
               onConfirm={confirmAction}
               onCancel={cancelAction}
+              isLoading={isLoading}
             />
           )}
 

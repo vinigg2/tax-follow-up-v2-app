@@ -309,14 +309,28 @@ PROMPT;
     }
 
     /**
-     * Assign responsible to task
+     * Assign responsible to task(s)
      */
     private function assignResponsible(User $user, array $data): array
     {
-        $task = Task::whereIn('group_id', $user->accessibleGroupIds())
+        $groupIds = $user->accessibleGroupIds();
+        $userId = $data['user_id'];
+
+        // Handle multiple tasks
+        if (isset($data['task_ids']) && is_array($data['task_ids'])) {
+            $taskIds = $data['task_ids'];
+            $updated = Task::whereIn('group_id', $groupIds)
+                ->whereIn('id', $taskIds)
+                ->update(['responsible' => $userId]);
+
+            return ['updated_count' => $updated, 'user_id' => $userId];
+        }
+
+        // Handle single task
+        $task = Task::whereIn('group_id', $groupIds)
             ->findOrFail($data['task_id']);
 
-        $task->update(['responsible' => $data['user_id']]);
+        $task->update(['responsible' => $userId]);
 
         return ['task_id' => $task->id, 'responsible' => $data['user_id']];
     }
