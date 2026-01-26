@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\ChecklistController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\AIController;
 
 /*
 |--------------------------------------------------------------------------
@@ -167,6 +168,15 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // Invitations
     Route::get('invitations', [InvitationController::class, 'index']);
     Route::delete('invitations/{invitation}', [InvitationController::class, 'destroy']);
+
+    // AI Assistant
+    Route::prefix('ai')->group(function () {
+        Route::post('chat', [AIController::class, 'chat']);
+        Route::post('execute', [AIController::class, 'executeAction']);
+        Route::post('analyze-document/{document}', [AIController::class, 'analyzeDocument']);
+        Route::get('suggestions/task/{task}', [AIController::class, 'getTaskSuggestions']);
+        Route::post('generate-obligation', [AIController::class, 'generateObligation']);
+    });
 });
 
 // Invitation accept (authenticated but not requiring tenant)
