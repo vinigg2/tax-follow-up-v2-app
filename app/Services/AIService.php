@@ -153,11 +153,23 @@ PROMPT;
     }
 
     /**
+     * Check if AI is configured
+     */
+    public function isConfigured(): bool
+    {
+        return !empty($this->apiKey);
+    }
+
+    /**
      * Call AI API
      */
     private function callAI(string $systemPrompt, array $messages): string
     {
-        $response = Http::withHeaders([
+        if (!$this->isConfigured()) {
+            throw new \Exception('Assistente de IA nao configurado. Configure AI_API_KEY no arquivo .env');
+        }
+
+        $response = Http::timeout(30)->withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type' => 'application/json',
             'HTTP-Referer' => config('app.url'),
@@ -173,7 +185,8 @@ PROMPT;
         ]);
 
         if (!$response->successful()) {
-            throw new \Exception('Erro na API de IA: ' . $response->body());
+            $error = $response->json('error.message') ?? $response->body();
+            throw new \Exception('Erro na API de IA: ' . $error);
         }
 
         $data = $response->json();

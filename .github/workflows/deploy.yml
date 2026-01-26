@@ -81,12 +81,15 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_API_URL: ${{ secrets.AI_API_URL }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
         with:
           host: iad1-shared-b7-10.dreamhost.com
           username: vinigg2
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          envs: APP_KEY,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET
+          envs: APP_KEY,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,MAIL_HOST,MAIL_PORT,MAIL_USERNAME,MAIL_PASSWORD,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET,AI_API_KEY,AI_API_URL,AI_MODEL
           script: |
             cd /home/vinigg2/demo.taxfollowup.com.br.app
 
@@ -145,6 +148,10 @@ jobs:
             AWS_USE_PATH_STYLE_ENDPOINT=false
 
             SANCTUM_STATEFUL_DOMAINS=demo.taxfollowup.com.br
+
+            AI_API_URL=${AI_API_URL:-https://openrouter.ai/api/v1}
+            AI_API_KEY=${AI_API_KEY}
+            AI_MODEL=${AI_MODEL:-anthropic/claude-3.5-sonnet}
             EOF
 
             # Create storage directories if they don't exist

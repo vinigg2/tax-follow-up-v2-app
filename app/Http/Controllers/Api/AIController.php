@@ -29,6 +29,14 @@ class AIController extends Controller
         $context = $request->input('context');
         $conversationId = $request->input('conversationId');
 
+        // Check if AI is configured
+        if (!$this->aiService->isConfigured()) {
+            return response()->json([
+                'message' => 'Assistente de IA nao configurado. Entre em contato com o administrador.',
+                'conversationId' => $conversationId ?? uniqid('conv_'),
+            ], 503);
+        }
+
         try {
             $response = $this->aiService->chat(
                 $user,
